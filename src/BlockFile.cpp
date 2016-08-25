@@ -57,6 +57,9 @@ out.
 #include "Internat.h"
 #include "MemoryX.h"
 
+// fix undefined isnan, gcc 5.4/linux, wxWidgets 3.0.2
+using std::isnan;
+
 // msmeyer: Define this to add debug output via printf()
 //#define DEBUG_BLOCKFILE
 

@@ -59,6 +59,9 @@
 #include <AppKit/AppKit.h>
 #endif
 
+// fix undefined isnan, gcc 5.4/linux, wxWidgets 3.0.2
+using std::isnan;
+
 // Define the static URI nodes
 #undef URI
 #define URI(n, u) LilvNode *LV2Effect::n = NULL;
