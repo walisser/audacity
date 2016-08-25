@@ -83,8 +83,10 @@ class Profiler
       int mLine;
       char* mDescription;
       int mNumHits;
-      clock_t mCumTime;
-      clock_t mLastTime;
+      //clock_t mCumTime;
+      //clock_t mLastTime;
+      uint64_t mCumTime;
+      uint64_t mLastTime;
    };
 
 

@@ -25,6 +25,17 @@ but it will probably work fine if you use it on a high level.
 #include <stdio.h>
 #include <string.h>
 
+#include <sys/time.h>
+
+static inline uint64_t nanoTime()
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+
+    return ((uint64_t)tv.tv_sec)*1000000000ULL
+            + (tv.tv_usec * 1000);
+}
+
 ///write to a profile at the end of the test.
 Profiler::~Profiler()
 {
@@ -45,7 +56,8 @@ Profiler::~Profiler()
          {
             fprintf(log,"Task: %s\n(begins at line %d in %s)\n\n",mTasks[i]->mDescription,mTasks[i]->mLine,mTasks[i]->mFileName);
             fprintf(log,"Number of times run: %d\n",mTasks[i]->mNumHits);
-            fprintf(log,"Total run time (seconds): %f\n", (double)mTasks[i]->mCumTime/CLOCKS_PER_SEC);
+//            fprintf(log,"Total run time (seconds): %f\n", (double)mTasks[i]->mCumTime/CLOCKS_PER_SEC);
+            fprintf(log,"Total run time (seconds): %f\n", (double)mTasks[i]->mCumTime/1000000000.0);
             fprintf(log,"Average run time (seconds): %f\n",mTasks[i]->ComputeAverageRunTime());
 
             if(i < ((int)mTasks.size()) -1)
@@ -142,21 +154,23 @@ void TaskProfile::Begin(char* fileName, int lineNum, char* taskDescription)
       mLine = lineNum;
    }
 
-   mLastTime = clock();
-
+//   mLastTime = clock();
+   mLastTime = nanoTime();
 }
 
 ///end the task timer.
 void TaskProfile::End(char* WXUNUSED(fileName), int WXUNUSED(lineNum), char* WXUNUSED(taskDescription))
 {
-   mCumTime += clock() - mLastTime;
+   //mCumTime += clock() - mLastTime;
+   mCumTime += nanoTime() - mLastTime;
    mNumHits++;
 }
 
 double TaskProfile::ComputeAverageRunTime()
 {
    if(mNumHits)
-      return (double) ((double)mCumTime/CLOCKS_PER_SEC)/mNumHits;
+      //return (double) ((double)mCumTime/CLOCKS_PER_SEC)/mNumHits;
+      return (double) ((double)mCumTime/1000000000.0)/mNumHits;
    else
       return 0.0;
 }
