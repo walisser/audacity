@@ -43,9 +43,14 @@
 
 #include "Experimental.h"
 
-//#undef _OPENMP
 #ifdef _OPENMP
 #include <omp.h>
+#else
+// Comment this out if you want to profile non OpenMP builds too.
+#undef BEGIN_TASK_PROFILING
+#undef END_TASK_PROFILING
+#define BEGIN_TASK_PROFILING(TASK_DESCRIPTION) 
+#define END_TASK_PROFILING(TASK_DESCRIPTION) 
 #endif
 
 class WaveCache {
@@ -420,7 +425,7 @@ void WaveClip::ClearWaveCache()
 }
 
 ///Adds an invalid region to the wavecache so it redraws that portion only.
-void WaveClip::AddInvalidRegion(long startSample, long endSample)
+void WaveClip::AddInvalidRegion(sampleCount startSample, sampleCount endSample)
 {
    ODLocker locker(&mWaveCacheMutex);
    if(mWaveCache!=NULL)
@@ -923,10 +928,10 @@ bool SpecCache::CalculateOneSpectrum
                }
 
                int correctedX = (floor(0.5 + xx + timeCorrection * pixelsPerSecond / rate));
-               if (correctedX >= lowerBoundX && correctedX < upperBoundX) {
-                  result = true;
+
+               if (correctedX >= lowerBoundX && correctedX < upperBoundX)
+                  result = true,
                   out[half * correctedX + bin] += power;
-               }
             }
          }
       }
@@ -994,8 +999,6 @@ void SpecCache::Populate
       const int upperBoundX = jj == 0 ? copyBegin : numPixels;
 
 #ifdef _OPENMP
-      //omp_set_num_threads(2); // debug races, less helgrind output
-
       // Storage for mutable per-thread data.
       // private clause ensures one copy per thread
       struct ThreadLocalStorage {
@@ -1065,7 +1068,6 @@ void SpecCache::Populate
 
          // Now Convert to dB terms.  Do this only after accumulating
          // power values, which may cross columns with the time correction.
-
          const HFFT hFFT = settings.hFFT;
 #ifdef _OPENMP
          #pragma omp parallel for
