@@ -1000,7 +1000,6 @@ void SpecCache::Populate
    if (!autocorrelation)
       ComputeSpectrogramGainFactors(fftLen, rate, frequencyGain, gainFactors);
 
-   float* spectrum = &freq[0];
 
    // Loop over the ranges before and after the copied portion and compute anew.
    // One of the ranges may be empty.
