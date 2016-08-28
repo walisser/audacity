@@ -930,8 +930,18 @@ bool SpecCache::CalculateOneSpectrum
                int correctedX = (floor(0.5 + xx + timeCorrection * pixelsPerSecond / rate));
 
                if (correctedX >= lowerBoundX && correctedX < upperBoundX)
-                  result = true,
-                  out[half * correctedX + bin] += power;
+               {
+                  result = true;
+
+                  int index = half * correctedX + bin;
+#ifdef _OPENMP
+                  // This assignment can race if index reaches into another thread's bins.
+                  // The probability of a race very low, so this carries little overhead,
+                  // about 5% slower vs allowing it to race.
+                  #pragma omp atomic
+#endif
+                  out[index] += power;
+               }
             }
          }
       }
