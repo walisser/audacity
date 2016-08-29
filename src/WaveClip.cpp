@@ -928,7 +928,6 @@ bool SpecCache::CalculateOneSpectrum
                }
 
                int correctedX = (floor(0.5 + xx + timeCorrection * pixelsPerSecond / rate));
-
                if (correctedX >= lowerBoundX && correctedX < upperBoundX)
                {
                   result = true;
@@ -1000,7 +999,6 @@ void SpecCache::Populate
    if (!autocorrelation)
       ComputeSpectrogramGainFactors(fftLen, rate, frequencyGain, gainFactors);
 
-
    // Loop over the ranges before and after the copied portion and compute anew.
    // One of the ranges may be empty.
    for (int jj = 0; jj < 2; ++jj) {
@@ -1040,7 +1038,7 @@ void SpecCache::Populate
             settings, cache, xx, numSamples,
             offset, rate, pixelsPerSecond,
             lowerBoundX, upperBoundX,
-            gainFactors, buffer, spectrum);
+            gainFactors, buffer, &freq[0]);
       }
 
       if (reassignment) {
@@ -1077,12 +1075,12 @@ void SpecCache::Populate
 
          // Now Convert to dB terms.  Do this only after accumulating
          // power values, which may cross columns with the time correction.
-         const HFFT hFFT = settings.hFFT;
 #ifdef _OPENMP
          #pragma omp parallel for
 #endif
          for (auto xx = lowerBoundX; xx < upperBoundX; ++xx) {
             float *const results = &freq[half * xx];
+            const HFFT hFFT = settings.hFFT;
             for (int ii = 0; ii < hFFT->Points; ++ii) {
                float &power = results[ii];
                if (power <= 0)
