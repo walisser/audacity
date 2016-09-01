@@ -1888,6 +1888,44 @@ void TrackPanel::SelectRangeOfTracks(Track *sTrack, Track *eTrack)
    }
 }
 
+void TrackPanel::ChangeSelectionOnShiftClick(Track * pTrack){
+
+   // Optional: Track already selected?  Nothing to do.
+   // If we enable this, Shift-Click behaves like click in this case.
+   //if( pTrack->GetSelected() )
+   //   return;
+
+   // Find first and last selected track.
+   Track* pFirst = nullptr;
+   Track* pLast = nullptr;
+   // We will either extend from the first or from the last.
+   Track* pExtendFrom= nullptr;
+
+   TrackListIterator iter(GetTracks());
+   for (Track *t = iter.First(); t; t = iter.Next()) {
+      const bool isSelected = t->GetSelected();
+      // If our track is after the first, extend from the first.
+      if( t == pTrack ){
+         pExtendFrom = pFirst;
+      }
+      // Record first and last selected.
+      if( isSelected ){
+         if( !pFirst )
+            pFirst = t;
+         pLast = t;
+      }
+   }
+   // Our track was the first or earlier.  Extend from the last.
+   if( !pExtendFrom )
+      pExtendFrom = pLast;
+
+   SelectNone();
+   if( pExtendFrom )
+      SelectRangeOfTracks(pTrack, pExtendFrom);
+   else
+      SelectTrack( pTrack, true );
+}
+
 /// This method gets called when we're handling selection
 /// and the mouse was just clicked.
 void TrackPanel::SelectionHandleClick(wxMouseEvent & event,
@@ -1923,17 +1961,24 @@ void TrackPanel::SelectionHandleClick(wxMouseEvent & event,
    bool stretch = HitTestStretch(pTrack, rect, event);
 #endif
 
-   if (event.ShiftDown()
+   bool bShiftDown = event.ShiftDown();
+   bool bCtrlDown = event.ControlDown();
+   if (bShiftDown || bCtrlDown
 
 #ifdef USE_MIDI
        && !stretch
 #endif
    ) {
-      SelectNone();
-      if (mLastPickedTrack && event.ShiftDown())
-         SelectRangeOfTracks(pTrack, mLastPickedTrack);
-      else
-         SelectTrack(pTrack, true);
+
+      if( bShiftDown )
+         ChangeSelectionOnShiftClick( pTrack );
+      if( bCtrlDown ){
+         //bool bIsSelected = pTrack->GetSelected();
+         bool bIsSelected = false;
+         // could set bIsSelected true here, but toggling is more technically correct.
+         // if we want to match behaviour in Track Control Panel.
+         SelectTrack( pTrack, !bIsSelected, false );
+      }
 
       double value;
       // Shift-click, choose closest boundary
@@ -2722,7 +2767,8 @@ void TrackPanel::SelectionHandleDrag(wxMouseEvent & event, Track *clickedTrack)
 
    if (event.CmdDown()) {
       // Ctrl-drag has no meaning, fuhggeddaboudit
-      return;
+      // JKC YES it has meaning.
+      //return;
    }
 
    wxRect rect      = mCapturedRect;
@@ -4972,18 +5018,19 @@ void TrackPanel::HandleListSelection(Track *t, bool shift, bool ctrl,
    // AS: If the shift button is being held down, invert
    //  the selection on this track.
    if (ctrl) {
-      SelectTrack(t, !t->GetSelected());
+      SelectTrack(t, !t->GetSelected(), false);
       Refresh(false);
    }
    else {
-      SelectNone();
       if (shift && mLastPickedTrack)
-         SelectRangeOfTracks(t, mLastPickedTrack);
-      else
+         ChangeSelectionOnShiftClick( t );
+      else{
+         SelectNone();
          SelectTrack(t, true);
-      SetFocusedTrack(t);
-      SelectTrackLength(t);
+         SelectTrackLength(t);
+      }
 
+      SetFocusedTrack(t);
       this->Refresh(false);
       MixerBoard* pMixerBoard = this->GetMixerBoard();
       if (pMixerBoard)
@@ -6198,9 +6245,21 @@ bool TrackPanel::HandleTrackLocationMouseEvent(WaveTrack * track, wxRect &rect, 
          return true;
       }
 
+
       return true;
    }
 
+   if( event.LeftDown() ){
+      bool bShift = event.ShiftDown();
+      bool bCtrlDown = event.ControlDown();
+      bool unsafe = IsUnsafe();
+      bCtrlDown = false;
+      if( /*bShift ||*/ bCtrlDown ){
+
+         HandleListSelection(track, bShift, bCtrlDown, !unsafe);
+         return true;
+      }
+   }
    return false;
 }
 
@@ -6266,6 +6325,19 @@ bool TrackPanel::HandleLabelTrackClick(LabelTrack * lTrack, wxRect &rect, wxMous
       return true;
    }
 
+   if( event.LeftDown() ){
+      bool bShift = event.ShiftDown();
+      bool bCtrlDown = event.ControlDown();
+      bool unsafe = IsUnsafe();
+
+      if( /*bShift ||*/ bCtrlDown ){
+
+         HandleListSelection(lTrack, bShift, bCtrlDown, !unsafe);
+         return true;
+      }
+   }
+
+
    // IF the user clicked a label, THEN select all other tracks by Label
    if (lTrack->IsSelected()) {
       SelectTracksByLabel(lTrack);
@@ -6289,6 +6361,9 @@ bool TrackPanel::HandleLabelTrackClick(LabelTrack * lTrack, wxRect &rect, wxMous
       Refresh(false);
       return;
    }*/
+
+
+
 
    // return false, there is more to do...
    return false;
