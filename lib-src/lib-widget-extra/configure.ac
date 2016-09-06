@@ -58,6 +58,13 @@ AC_ARG_WITH(wx-version,
            wx_preference="")
 dnl Right now only support wx 3.0
 
+dnl Enable C++ 11 support. Use gnu++11 on GCC since wxWidgets uses extensions
+if test "${ac_cv_cxx_compiler_gnu}" = "yes"; then
+    CXXFLAGS="${CXXFLAGS} --std=gnu++11"
+else
+    CXXFLAGS="${CXXFLAGS} --std=c++11"
+fi
+
 dnl ----------------------------------------------------
 dnl If user asked for debug, put debug in compiler flags
 dnl ----------------------------------------------------

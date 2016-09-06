@@ -16235,6 +16235,12 @@ else
 fi
 
 
+if test "${ac_cv_cxx_compiler_gnu}" = "yes"; then
+    CXXFLAGS="${CXXFLAGS} --std=gnu++11"
+else
+    CXXFLAGS="${CXXFLAGS} --std=c++11"
+fi
+
 
 if test x"$debug_preference" = "xyes" ; then
       { $as_echo "$as_me:${as_lineno-$LINENO}: Adding -g for debugging to CFLAGS and CXXFLAGS ..." >&5
