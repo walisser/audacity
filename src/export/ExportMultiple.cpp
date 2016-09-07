@@ -643,7 +643,7 @@ int ExportMultiple::ExportMultipleByLabel(bool byName,
    }
 
    // Figure out how many channels we should export.
-   int channels = mTracks->GetNumExportChannels(false);
+   auto channels = mTracks->GetNumExportChannels(false);
 
    wxArrayString otherNames;  // keep track of file names we will use, so we
    // don't duplicate them
@@ -932,7 +932,7 @@ int ExportMultiple::ExportMultipleByTrack(bool byName,
    return ok ;
 }
 
-int ExportMultiple::DoExport(int channels,
+int ExportMultiple::DoExport(unsigned channels,
                               const wxFileName &inName,
                               bool selectedOnly,
                               double t0,
@@ -995,9 +995,20 @@ wxString ExportMultiple::MakeFileName(const wxString &input)
    {  // need to get user to fix file name
       // build the dialog
       wxString msg;
-      msg.Printf(_("Label or track \"%s\" is not a legal file name. You cannot use any of: %s\nUse..."), input.c_str(),
-         ::wxJoin(Internat::GetExcludedCharacters(), wxChar(' ')));
+      wxString excluded = ::wxJoin( Internat::GetExcludedCharacters(), wxChar(' ') );
+      // TODO: For Russian langauge we should have separate cases for 2 and more than 2 letters.
+      if( excluded.Length() > 1 ){
+         // i18ln-hint: The second %s gives some letters that can't be used.
+         msg.Printf(_("Label or track \"%s\" is not a legal file name. You cannot use any of: %s\nUse..."), input.c_str(),
+            excluded.c_str());
+      } else {
+         // i18ln-hint: The second %s gives a letter that can't be used.
+         msg.Printf(_("Label or track \"%s\" is not a legal file name. You cannot use \"%s\".\nUse..."), input.c_str(),
+            excluded.c_str());
+      }
+
       wxTextEntryDialog dlg( this, msg, _("Save As..."), newname );
+
 
       // And tell the validator about excluded chars
       dlg.SetTextValidator( wxFILTER_EXCLUDE_CHAR_LIST );
