@@ -871,7 +871,7 @@ END_EVENT_TABLE()
 AudacityProject::AudacityProject(wxWindow * parent, wxWindowID id,
                                  const wxPoint & pos,
                                  const wxSize & size)
-   : wxFrame(parent, id, wxT("Audacity"), pos, size),
+   : wxFrame(parent, id, _TS("Audacity"), pos, size),
      mRate((double) gPrefs->Read(wxT("/SamplingRate/DefaultProjectSampleRate"), AudioIO::GetOptimalSupportedSampleRate())),
      mDefaultFormat((sampleFormat) gPrefs->
            Read(wxT("/SamplingRate/DefaultProjectSampleFormat"), floatSample)),
@@ -1380,14 +1380,14 @@ void AudacityProject::SetProjectTitle( int number)
    // is none.
    if( number >= 0 ){
       /* i18n-hint: The %02i is the project number, the %s is the project name.*/
-      name = wxString::Format( wxT("[Project %02i] Audacity \"%s\""), number+1 ,
+      name = wxString::Format( _TS("[Project %02i] Audacity \"%s\""), number+1 ,
          name.IsEmpty() ? "<untitled>" : name.c_str() );
    }
    // If we are not showing numbers, then <untitled> shows as 'Audacity'.
    else if( name.IsEmpty() )
    {
       mbLoadedFromAup = false;
-      name = wxT("Audacity");
+      name = _TS("Audacity");
    }
 
    if (mIsRecovered)
@@ -1652,7 +1652,7 @@ void AudacityProject::OnScrollRight()
 ///
 ///  This handles the event when the left direction button on the scrollbar is depresssed
 ///
-void AudacityProject::OnScrollLeftButton(wxScrollEvent & event)
+void AudacityProject::OnScrollLeftButton(wxScrollEvent & /*event*/)
 {
    wxInt64 pos = mHsbar->GetThumbPosition();
    // move at least one scroll increment
@@ -1671,7 +1671,7 @@ void AudacityProject::OnScrollLeftButton(wxScrollEvent & event)
 ///
 ///  This handles  the event when the right direction button on the scrollbar is depresssed
 ///
-void AudacityProject::OnScrollRightButton(wxScrollEvent & event)
+void AudacityProject::OnScrollRightButton(wxScrollEvent & /*event*/)
 {
    wxInt64 pos = mHsbar->GetThumbPosition();
    // move at least one scroll increment
@@ -2276,6 +2276,7 @@ void AudacityProject::OnUpdateUI(wxUpdateUIEvent & WXUNUSED(event))
 
 void AudacityProject::MacShowUndockedToolbars(bool show)
 {
+   (void)show;//compiler food
 #ifdef __WXMAC__
    // Find all the floating toolbars, and show or hide them
    const auto &children = GetChildren();
@@ -2364,6 +2365,10 @@ void AudacityProject::OnMouseEvent(wxMouseEvent & event)
 class TitleRestorer{
 public:
    TitleRestorer(AudacityProject * p ){
+      if( p->IsIconized() )
+         p->Restore();
+      p->Raise(); // May help identifying the window on Mac
+
       // Construct this projects name and number.
       sProjNumber = "";
       sProjName = p->GetName();

@@ -144,6 +144,7 @@ public:
    virtual ~Exporter();
 
    void SetFileDialogTitle( const wxString & DialogTitle );
+   void SetDefaultFormat( const wxString & Format ){ mFormatName = Format;};
    void RegisterPlugin(movable_ptr<ExportPlugin> &&plugin);
 
    bool Process(AudacityProject *project, bool selectedOnly,
@@ -173,7 +174,6 @@ public:
    wxFileName GetAutoExportFileName();
 
 private:
-
    bool ExamineTracks();
    bool GetFilename();
    bool CheckFilename();
@@ -185,6 +185,7 @@ private:
    void OnFilterChanged(wxFileCtrlEvent & evt);
 
 private:
+   wxString mFormatName;
    FileDialog *mDialog;
    wxString mFileDialogTitle;
    AudacityProject *mProject;

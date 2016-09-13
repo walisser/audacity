@@ -316,11 +316,13 @@ Meter::Meter(AudacityProject *project,
    {
       if(mIsInput)
       {
-         mIcon = std::make_unique<wxBitmap>(MicMenuNarrow_xpm);
+         //mIcon = new wxBitmap(MicMenuNarrow_xpm);
+         mIcon = std::make_unique<wxBitmap>(wxBitmap(theTheme.Bitmap(bmpMic)));
       }
       else
       {
-         mIcon = std::make_unique<wxBitmap>(SpeakerMenuNarrow_xpm);
+         //mIcon = new wxBitmap(SpeakerMenuNarrow_xpm);
+         mIcon = std::make_unique<wxBitmap>(wxBitmap(theTheme.Bitmap(bmpSpeaker)));
       }
    }
 
@@ -866,10 +868,12 @@ static float floatMax(float a, float b)
    return a>b? a: b;
 }
 
+/* Unused as yet.
 static int intmin(int a, int b)
 {
    return a<b? a: b;
 }
+*/
 
 static int intmax(int a, int b)
 {
