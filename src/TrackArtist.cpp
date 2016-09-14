@@ -2184,18 +2184,20 @@ void TrackArtist::DrawClipSpectrum(WaveTrackCache &waveTrackCache,
 
    // nearest frequency to each pixel row from number scale, for selecting
    // the desired fft bin(s) for display on that row
-   float bins[ hiddenMid.height + 1 ];
+   std::vector<float> bins;
    {
        const NumberScale numberScale(settings.GetScale(minFreq, maxFreq, rate, true));
 
        NumberScale::Iterator it = numberScale.begin(mid.height);
        float nextBin = std::max(0.0f, std::min(float(half - 1), *it));
-       int yy;
-       for (yy = 0; yy < hiddenMid.height; ++yy) {
-          bins[yy] = nextBin;
+
+       for (int yy = 0; yy < hiddenMid.height; ++yy) {
+          bins.push_back(nextBin);
           nextBin = std::max(0.0f, std::min(float(half - 1), *++it));
        }
-       bins[yy] = nextBin;
+       bins.push_back(nextBin);
+
+       assert(bins.size() == (size_t)mid.height+1);
    }
 
 #ifdef EXPERIMENTAL_FFT_Y_GRID
@@ -2436,14 +2438,6 @@ void TrackArtist::DrawClipSpectrum(WaveTrackCache &waveTrackCache,
 
    int fisheyeColumn = 0;
 
-   // get the time the display starts and time between pixel columns,
-   // (in samples), use it to determine if a pixel column is selected or not
-   auto initialTime = sampleCount(0.5 + rate *
-      (zoomInfo.PositionToTime(0, -leftOffset) - tOffset));
-
-   auto timeStep = sampleCount(0.5 + rate *
-      (zoomInfo.PositionToTime(1, -leftOffset) - tOffset)) - initialTime;
-
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -2451,12 +2445,18 @@ void TrackArtist::DrawClipSpectrum(WaveTrackCache &waveTrackCache,
    {
       int correctedX = xx + leftOffset - hiddenLeftOffset;
 
+      // in fisheye mode the time scale changes so the values aren't cached
       const bool inFisheye = zoomInfo.InFisheye(xx, -leftOffset);
       float *const uncached =
          inFisheye ? &specCache.freq[(fisheyeColumn++) * half] : 0;
 
-      auto w0 = initialTime + timeStep*xx;
-      auto w1 = w0 + timeStep;
+      // zoomInfo must be queried for each column since with fisheye enabled
+      // time between columns is variable
+      auto w0 = sampleCount(0.5 + rate *
+                   (zoomInfo.PositionToTime(xx, -leftOffset) - tOffset));
+
+      auto w1 = sampleCount(0.5 + rate *
+                    (zoomInfo.PositionToTime(xx+1, -leftOffset) - tOffset));
 
       bool maybeSelected = ssel0 <= w0 && w1 < ssel1;
 
