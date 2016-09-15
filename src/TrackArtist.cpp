@@ -2185,6 +2185,7 @@ void TrackArtist::DrawClipSpectrum(WaveTrackCache &waveTrackCache,
    // nearest frequency to each pixel row from number scale, for selecting
    // the desired fft bin(s) for display on that row
    std::vector<float> bins;
+   bins.reserve(mid.height+1);
    {
        const NumberScale numberScale(settings.GetScale(minFreq, maxFreq, rate, true));
 
@@ -2197,7 +2198,7 @@ void TrackArtist::DrawClipSpectrum(WaveTrackCache &waveTrackCache,
        }
        bins.push_back(nextBin);
 
-       assert(bins.size() == (size_t)mid.height+1);
+       wxASSERT(bins.size() == (size_t)mid.height+1);
    }
 
 #ifdef EXPERIMENTAL_FFT_Y_GRID
