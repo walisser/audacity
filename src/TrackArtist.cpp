@@ -151,6 +151,10 @@ audio tracks.
 #include <float.h>
 #include <limits>
 
+#ifdef HAVE_ALLOCA_H
+#include <alloca.h>
+#endif
+
 #include <wx/brush.h>
 #include <wx/colour.h>
 #include <wx/dc.h>
@@ -1997,7 +2001,6 @@ void TrackArtist::DrawTimeSlider(wxDC & dc,
    }
 }
 
-
 void TrackArtist::DrawSpectrum(const WaveTrack *track,
                                wxDC & dc,
                                const wxRect & rect,
@@ -2113,7 +2116,6 @@ void TrackArtist::DrawClipSpectrum(WaveTrackCache &waveTrackCache,
 
    const ClipParameters params(true, track, clip, rect, selectedRegion, zoomInfo);
    const wxRect hiddenMid = params.hiddenMid;
-
    // The "hiddenMid" rect contains the part of the display actually
    // containing the waveform, as it appears without the fisheye.  If it's empty, we're done.
    if (hiddenMid.width <= 0) {
@@ -2144,6 +2146,7 @@ void TrackArtist::DrawClipSpectrum(WaveTrackCache &waveTrackCache,
    const bool isGrayscale = settings.isGrayscale;
    const int range = settings.range;
    const int gain = settings.gain;
+
 #ifdef EXPERIMENTAL_FIND_NOTES
    const bool fftFindNotes = settings.fftFindNotes;
    const bool findNotesMinA = settings.findNotesMinA;
@@ -2184,21 +2187,19 @@ void TrackArtist::DrawClipSpectrum(WaveTrackCache &waveTrackCache,
 
    // nearest frequency to each pixel row from number scale, for selecting
    // the desired fft bin(s) for display on that row
-   std::vector<float> bins;
-   bins.reserve(mid.height+1);
+   float *bins = (float*)alloca(sizeof(*bins)*(hiddenMid.height + 1));
    {
        const NumberScale numberScale(settings.GetScale(minFreq, maxFreq, rate, true));
 
        NumberScale::Iterator it = numberScale.begin(mid.height);
        float nextBin = std::max(0.0f, std::min(float(half - 1), *it));
 
-       for (int yy = 0; yy < hiddenMid.height; ++yy) {
-          bins.push_back(nextBin);
+       int yy;
+       for (yy = 0; yy < hiddenMid.height; ++yy) {
+          bins[yy] = nextBin;
           nextBin = std::max(0.0f, std::min(float(half - 1), *++it));
        }
-       bins.push_back(nextBin);
-
-       wxASSERT(bins.size() == (size_t)mid.height+1);
+       bins[yy] = nextBin;
    }
 
 #ifdef EXPERIMENTAL_FFT_Y_GRID
@@ -2437,19 +2438,27 @@ void TrackArtist::DrawClipSpectrum(WaveTrackCache &waveTrackCache,
    if (!AColor::gradient_inited)
       AColor::PreComputeGradient();
 
-   int fisheyeColumn = 0;
+   // left pixel column of the fisheye
+   int fisheyeLeft = zoomInfo.GetFisheyeLeftBoundary(-leftOffset);
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-   for (int xx = 0; xx < mid.width; ++xx)
-   {
+   for (int xx = 0; xx < mid.width; ++xx) {
+
       int correctedX = xx + leftOffset - hiddenLeftOffset;
 
-      // in fisheye mode the time scale changes so the values aren't cached
-      const bool inFisheye = zoomInfo.InFisheye(xx, -leftOffset);
-      float *const uncached =
-         inFisheye ? &specCache.freq[(fisheyeColumn++) * half] : 0;
+      // in fisheye mode the time scale has changed, so the row values aren't cached
+      // in the loop above, and must be fetched from fft cache
+      float* uncached;
+      if (!zoomInfo.InFisheye(xx, -leftOffset)) {
+          uncached = 0;
+      }
+      else {
+          int specIndex = (xx - fisheyeLeft) * half;
+          wxASSERT(specIndex >= 0 && specIndex < specCache.freq.size());
+          uncached = &specCache.freq[specIndex];
+      }
 
       // zoomInfo must be queried for each column since with fisheye enabled
       // time between columns is variable
