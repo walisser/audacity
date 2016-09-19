@@ -2119,22 +2119,22 @@ void TrackArtist::DrawClipSpectrum(WaveTrackCache &waveTrackCache,
    enum { DASH_LENGTH = 10 /* pixels */ };
 
    const ClipParameters params(true, track, clip, rect, selectedRegion, zoomInfo);
-   const wxRect hiddenMid = params.hiddenMid;
+   const wxRect &hiddenMid = params.hiddenMid;
    // The "hiddenMid" rect contains the part of the display actually
    // containing the waveform, as it appears without the fisheye.  If it's empty, we're done.
    if (hiddenMid.width <= 0) {
       return;
    }
 
-   const double t0 = params.t0;
-   const double tOffset = params.tOffset;
-   const auto ssel0 = params.ssel0;
-   const auto ssel1 = params.ssel1;
-   const double averagePixelsPerSample = params.averagePixelsPerSample;
-   const double rate = params.rate;
-   const double hiddenLeftOffset = params.hiddenLeftOffset;
-   const double leftOffset = params.leftOffset;
-   const wxRect mid = params.mid;
+   const double &t0 = params.t0;
+   const double &tOffset = params.tOffset;
+   const auto &ssel0 = params.ssel0;
+   const auto &ssel1 = params.ssel1;
+   const double &averagePixelsPerSample = params.averagePixelsPerSample;
+   const double &rate = params.rate;
+   const double &hiddenLeftOffset = params.hiddenLeftOffset;
+   const double &leftOffset = params.leftOffset;
+   const wxRect &mid = params.mid;
 
    // If we get to this point, the clip is actually visible on the
    // screen, so remember the display rectangle.
@@ -2147,18 +2147,18 @@ void TrackArtist::DrawClipSpectrum(WaveTrackCache &waveTrackCache,
    freqHi = selectedRegion.f1();
 #endif
 
-   const bool isGrayscale = settings.isGrayscale;
-   const int range = settings.range;
-   const int gain = settings.gain;
+   const bool &isGrayscale = settings.isGrayscale;
+   const int &range = settings.range;
+   const int &gain = settings.gain;
 
 #ifdef EXPERIMENTAL_FIND_NOTES
-   const bool fftFindNotes = settings.fftFindNotes;
-   const bool findNotesMinA = settings.findNotesMinA;
-   const bool numberOfMaxima = settings.numberOfMaxima;
-   const bool findNotesQuantize = settings.findNotesQuantize;
+   const bool &fftFindNotes = settings.fftFindNotes;
+   const bool &findNotesMinA = settings.findNotesMinA;
+   const bool &numberOfMaxima = settings.numberOfMaxima;
+   const bool &findNotesQuantize = settings.findNotesQuantize;
 #endif
 #ifdef EXPERIMENTAL_FFT_Y_GRID
-   const bool fftYGrid = settings.fftYGrid;
+   const bool &fftYGrid = settings.fftYGrid;
 #endif
 
    dc.SetPen(*wxTRANSPARENT_PEN);
