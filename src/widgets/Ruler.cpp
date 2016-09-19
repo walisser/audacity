@@ -2137,13 +2137,14 @@ namespace {
          return _("Move to Scrub");
 #else
       wxMouseState State = wxGetMouseState();
-      if( State.LeftIsDown() )
+      if( State.LeftIsDown() ) {
          // Since mouse is down, mention dragging first.
          // IsScrubbing is true if Scrubbing OR seeking.
          if( scrubber.IsOneShotSeeking() )
             return _("Drag to Seek.  Release to stop seeking.");
          else 
             return _("Drag to Seek.  Release and move to Scrub.");
+      }
       // Since mouse is up, mention moving first.
       return _("Move to Scrub. Drag to Seek.");
 #endif
@@ -3370,7 +3371,7 @@ bool AdornedRulerPanel::s_AcceptsFocus{ false };
 
 auto AdornedRulerPanel::TemporarilyAllowFocus() -> TempAllowFocus {
    s_AcceptsFocus = true;
-   return std::move(TempAllowFocus{ &s_AcceptsFocus });
+   return TempAllowFocus{ &s_AcceptsFocus };
 }
 
 void AdornedRulerPanel::SetFocusFromKbd()

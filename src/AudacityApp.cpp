@@ -1923,7 +1923,7 @@ std::unique_ptr<wxCmdLineParser> AudacityApp::ParseCommandLine()
 
    // Run the parser
    if (parser->Parse() == 0)
-      return std::move(parser);
+      return parser;
 
    return{};
 }

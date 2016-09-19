@@ -633,7 +633,12 @@ void MixerTrackCluster::UpdateMeter(const double t0, const double t1)
    //delete[] rmsRight;
 
    auto startSample = (sampleCount)((mLeftTrack->GetRate() * t0) + 0.5);
-   auto nFrames = (sampleCount)((mLeftTrack->GetRate() * (t1 - t0)) + 0.5);
+   auto scnFrames = (sampleCount)((mLeftTrack->GetRate() * (t1 - t0)) + 0.5);
+
+   // Expect that the difference of t1 and t0 is the part of a track played
+   // in about 1/20 second (ticks of TrackPanel timer), so this won't overflow
+   auto nFrames = scnFrames.as_size_t();
+
    float* meterFloatsArray = NULL;
    float* tempFloatsArray = new float[nFrames];
    bool bSuccess = mLeftTrack->Get((samplePtr)tempFloatsArray, floatSample, startSample, nFrames);
@@ -1036,7 +1041,9 @@ void MixerBoard::UpdateTrackClusters()
 #else
             mMixerTrackClusters[nClusterIndex]->mLeftTrack = (WaveTrack*)pLeftTrack;
 #endif
-            mMixerTrackClusters[nClusterIndex]->mRightTrack = (WaveTrack*)pRightTrack;
+            // Assume linked track is wave or null
+            mMixerTrackClusters[nClusterIndex]->mRightTrack =
+               static_cast<WaveTrack*>(pRightTrack);
             mMixerTrackClusters[nClusterIndex]->UpdateForStateChange();
          }
          else
@@ -1051,7 +1058,9 @@ void MixerBoard::UpdateTrackClusters()
             wxSize clusterSize(kMixerTrackClusterWidth, nClusterHeight);
             pMixerTrackCluster =
                safenew MixerTrackCluster(mScrolledWindow, this, mProject,
-                                       (WaveTrack*)pLeftTrack, (WaveTrack*)pRightTrack,
+                                       static_cast<WaveTrack*>(pLeftTrack),
+                                       // Assume linked track is wave or null
+                                       static_cast<WaveTrack*>(pRightTrack),
                                        clusterPos, clusterSize);
             if (pMixerTrackCluster)
                mMixerTrackClusters.Add(pMixerTrackCluster);

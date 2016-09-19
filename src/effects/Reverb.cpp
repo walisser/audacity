@@ -159,7 +159,7 @@ unsigned EffectReverb::GetAudioOutCount()
    return mParams.mStereoWidth ? 2 : 1;
 }
 
-#define BLOCK 16384
+static size_t BLOCK = 16384;
 
 bool EffectReverb::ProcessInitialize(sampleCount WXUNUSED(totalLen), ChannelNames chanMap)
 {
@@ -204,7 +204,7 @@ bool EffectReverb::ProcessFinalize()
    return true;
 }
 
-sampleCount EffectReverb::ProcessBlock(float **inBlock, float **outBlock, sampleCount blockLen)
+size_t EffectReverb::ProcessBlock(float **inBlock, float **outBlock, size_t blockLen)
 {
    float *ichans[2] = {NULL, NULL};
    float *ochans[2] = {NULL, NULL};
@@ -422,15 +422,15 @@ void EffectReverb::PopulateOrExchange(ShuttleGui & S)
       m ## n ## S = S.Id(ID_ ## n). \
          AddSlider(wxT(""), DEF_ ## n, MAX_ ## n, MIN_ ## n);
 
-      SpinSlider(RoomSize,       _("&Room Size (%):"));
-      SpinSlider(PreDelay,       _("&Pre-delay (ms):"));
-      SpinSlider(Reverberance,   _("Rever&berance (%):"));
-      SpinSlider(HfDamping,      _("Da&mping (%):"));
-      SpinSlider(ToneLow,        _("Tone &Low (%):"));
-      SpinSlider(ToneHigh,       _("Tone &High (%):"));
-      SpinSlider(WetGain,        _("Wet &Gain (dB):"));
-      SpinSlider(DryGain,        _("Dr&y Gain (dB):"));
-      SpinSlider(StereoWidth,    _("Stereo Wid&th (%):"));
+      SpinSlider(RoomSize,       _("&Room Size (%):"))
+      SpinSlider(PreDelay,       _("&Pre-delay (ms):"))
+      SpinSlider(Reverberance,   _("Rever&berance (%):"))
+      SpinSlider(HfDamping,      _("Da&mping (%):"))
+      SpinSlider(ToneLow,        _("Tone &Low (%):"))
+      SpinSlider(ToneHigh,       _("Tone &High (%):"))
+      SpinSlider(WetGain,        _("Wet &Gain (dB):"))
+      SpinSlider(DryGain,        _("Dr&y Gain (dB):"))
+      SpinSlider(StereoWidth,    _("Stereo Wid&th (%):"))
 
 #undef SpinSlider
 
@@ -507,15 +507,15 @@ bool EffectReverb::TransferDataFromWindow()
       mProcessingEvent = false; \
    }
 
-SpinSliderHandlers(RoomSize);
-SpinSliderHandlers(PreDelay);
-SpinSliderHandlers(Reverberance);
-SpinSliderHandlers(HfDamping);
-SpinSliderHandlers(ToneLow);
-SpinSliderHandlers(ToneHigh);
-SpinSliderHandlers(WetGain);
-SpinSliderHandlers(DryGain);
-SpinSliderHandlers(StereoWidth);
+SpinSliderHandlers(RoomSize)
+SpinSliderHandlers(PreDelay)
+SpinSliderHandlers(Reverberance)
+SpinSliderHandlers(HfDamping)
+SpinSliderHandlers(ToneLow)
+SpinSliderHandlers(ToneHigh)
+SpinSliderHandlers(WetGain)
+SpinSliderHandlers(DryGain)
+SpinSliderHandlers(StereoWidth)
 
 #undef SpinSliderHandlers
 

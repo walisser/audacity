@@ -113,7 +113,7 @@ private:
                       const wxString & sTitle,
                       int iButtonID = -1);
 
-   void AddMessageAsColumn(wxBoxSizer * pSizer, const wxString & sText);
+   void AddMessageAsColumn(wxBoxSizer * pSizer, const wxString & sText, bool bFirstColumn);
 
 private:
    // This guarantees we have an active event loop...possible during OnInit()
@@ -125,7 +125,7 @@ private:
    int mLastW;
    int mLastH;
 
-   DECLARE_EVENT_TABLE();
+   DECLARE_EVENT_TABLE()
 };
 
 class AUDACITY_DLL_API TimerProgressDialog final : public ProgressDialog

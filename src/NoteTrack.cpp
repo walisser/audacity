@@ -164,6 +164,7 @@ Track::Holder NoteTrack::Duplicate() const
 #ifdef EXPERIMENTAL_MIDI_OUT
    duplicate->SetGain(GetGain());
 #endif
+   // This std::move is needed to "upcast" the pointer type
    return std::move(duplicate);
 }
 
@@ -452,6 +453,7 @@ Track::Holder NoteTrack::Cut(double t0, double t1)
    //(mBottomNote, mDirManager, mLastMidiPosition,
    // mSerializationBuffer, mSerializationLength, mVisibleChannels)
 
+   // This std::move is needed to "upcast" the pointer type
    return std::move(newTrack);
 }
 
@@ -473,6 +475,7 @@ Track::Holder NoteTrack::Copy(double t0, double t1) const
    //(mBottomNote, mDirManager, mLastMidiPosition,
    // mSerializationBuffer, mSerializationLength, mVisibleChannels)
 
+   // This std::move is needed to "upcast" the pointer type
    return std::move(newTrack);
 }
 
@@ -497,7 +500,8 @@ bool NoteTrack::Clear(double t0, double t1)
       return false;
    double len = t1-t0;
 
-   mSeq->clear(t0 - GetOffset(), len, false);
+   if (mSeq)
+      mSeq->clear(t0 - GetOffset(), len, false);
 
    return true;
 }
