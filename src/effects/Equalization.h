@@ -193,7 +193,7 @@ private:
    float *mFFTBuffer;
    float *mFilterFuncR;
    float *mFilterFuncI;
-   size_t mM;
+   int mM;
    wxString mCurveName;
    bool mLin;
    float mdBMax;
