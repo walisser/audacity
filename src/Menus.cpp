@@ -33,6 +33,7 @@ simplifies construction of menu items.
 #include "Audacity.h"
 #include "Project.h"
 
+#include <cfloat>
 #include <iterator>
 #include <limits>
 #include <math.h>
@@ -5888,7 +5889,7 @@ void AudacityProject::HandleAlign(int index, bool moveSel)
    wxString action;
    wxString shortAction;
    double offset;
-   double minOffset = 1000000000.0;
+   double minOffset = DBL_MAX;
    double maxEndOffset = 0.0;
    double leftOffset = 0.0;
    bool bRightChannel = false;
@@ -6188,7 +6189,7 @@ class ASAProgress final : public SAProgress {
          work = (is_audio[0] ? AUDIO_WORK_UNIT : MIDI_WORK_UNIT) * mFrames[0] +
                 (is_audio[1] ? AUDIO_WORK_UNIT : MIDI_WORK_UNIT) * f;
       }
-      int updateResult = mProgress->Update(int(work), int(mTotalWork));
+      int updateResult = mProgress->Update((int)(work), (int)(mTotalWork));
       return (updateResult == eProgressSuccess);
    }
    bool set_matrix_progress(int cells) override {
@@ -6197,7 +6198,7 @@ class ASAProgress final : public SAProgress {
              (is_audio[0] ? AUDIO_WORK_UNIT : MIDI_WORK_UNIT) * mFrames[0] +
              (is_audio[1] ? AUDIO_WORK_UNIT : MIDI_WORK_UNIT) * mFrames[1];
       work += mCellCount * MATRIX_WORK_UNIT;
-      int updateResult = mProgress->Update(int(work), int(mTotalWork));
+      int updateResult = mProgress->Update((int)(work), (int)(mTotalWork));
       return (updateResult == eProgressSuccess);
    }
    bool set_smoothing_progress(int i) override {
@@ -6207,7 +6208,7 @@ class ASAProgress final : public SAProgress {
              (is_audio[1] ? AUDIO_WORK_UNIT : MIDI_WORK_UNIT) * mFrames[1] +
              MATRIX_WORK_UNIT * mFrames[0] * mFrames[1];
       work += i * wxMax(mFrames[0], mFrames[1]) * SMOOTHING_WORK_UNIT;
-      int updateResult = mProgress->Update(int(work), int(mTotalWork));
+      int updateResult = mProgress->Update((int)(work), (int)(mTotalWork));
       return (updateResult == eProgressSuccess);
    }
 };
@@ -7068,7 +7069,7 @@ void AudacityProject::SeekLeftOrRight
                ? GridMove(t1, multiplier)
                : quietStepIsPixels
                   ? mViewInfo.OffsetTimeByPixels(
-                        t1, int(multiplier * quietSeekStepPositive))
+                        t1, (int)(multiplier * quietSeekStepPositive))
                   : t1 +  multiplier * quietSeekStepPositive
          ));
 
@@ -7083,7 +7084,7 @@ void AudacityProject::SeekLeftOrRight
                ? GridMove(t0, multiplier)
                : quietStepIsPixels
                   ? mViewInfo.OffsetTimeByPixels(
-                     t0, int(multiplier * quietSeekStepPositive))
+                     t0, (int)(multiplier * quietSeekStepPositive))
                   : t0 + multiplier * quietSeekStepPositive
          ));
 
@@ -7113,7 +7114,7 @@ void AudacityProject::SeekLeftOrRight
       if (audioStepIsPixels) {
          const double streamTime = gAudioIO->GetStreamTime();
          const double newTime =
-            mViewInfo.OffsetTimeByPixels(streamTime, int(audioSeekStepPositive));
+            mViewInfo.OffsetTimeByPixels(streamTime, (int)(audioSeekStepPositive));
          seconds = newTime - streamTime;
       }
       else
@@ -7135,7 +7136,7 @@ void AudacityProject::SeekLeftOrRight
                ? GridMove(t0, multiplier)
                : quietStepIsPixels
                   ? mViewInfo.OffsetTimeByPixels(
-                        t0, int(multiplier * quietSeekStepPositive))
+                        t0, (int)(multiplier * quietSeekStepPositive))
                   : t0 + multiplier * quietSeekStepPositive
          ));
 
@@ -7151,7 +7152,7 @@ void AudacityProject::SeekLeftOrRight
                ? GridMove(t1, multiplier)
                : quietStepIsPixels
                   ? mViewInfo.OffsetTimeByPixels(
-                        t1, int(multiplier * quietSeekStepPositive))
+                        t1, (int)(multiplier * quietSeekStepPositive))
                   : t1 + multiplier * quietSeekStepPositive
          ));
 
@@ -7178,7 +7179,7 @@ void AudacityProject::SeekLeftOrRight
                   ? GridMove(t0, multiplier)
                   : quietStepIsPixels
                      ? mViewInfo.OffsetTimeByPixels(
-                          t0, int(multiplier * quietSeekStepPositive))
+                          t0, (int)(multiplier * quietSeekStepPositive))
                      : t0 + multiplier * quietSeekStepPositive)),
             false // do not swap selection boundaries
          );

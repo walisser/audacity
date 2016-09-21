@@ -181,9 +181,9 @@ ODLock &AudacityProject::AllProjectDeleteMutex()
 };
 
 #if defined(__WXMAC__)
-const int sbarSpaceWidth = 15;
-const int sbarControlWidth = 16;
-const int sbarExtraLen = 1;
+// const int sbarSpaceWidth = 15;
+// const int sbarControlWidth = 16;
+// const int sbarExtraLen = 1;
 const int sbarHjump = 30;       //STM: This is how far the thumb jumps when the l/r buttons are pressed, or auto-scrolling occurs -- in pixels
 #elif defined(__WXMSW__)
 const int sbarSpaceWidth = 16;
@@ -414,7 +414,7 @@ public:
 
    bool OnDrop(wxCoord x, wxCoord y) override
    {
-      bool foundSupported = false;
+      // bool foundSupported = false;
 #if !wxCHECK_VERSION(3, 0, 0)
       bool firstFileAdded = false;
       OSErr result;
@@ -1734,7 +1734,7 @@ void AudacityProject::SetHorizontalThumb(double scrollto)
    const int pos =
       std::min(max,
          std::max(0,
-            int(floor(0.5 + unscaled * mViewInfo.sbarScale))));
+            (int)(floor(0.5 + unscaled * mViewInfo.sbarScale))));
    mHsbar->SetThumbPosition(pos);
    mViewInfo.sbarH = floor(0.5 + unscaled - PixelWidthBeforeTime(0.0));
    mViewInfo.sbarH = std::max(mViewInfo.sbarH,
@@ -1915,7 +1915,7 @@ void AudacityProject::FixScrollbars()
       int scaledSbarScreen = (int)(mViewInfo.sbarScreen * mViewInfo.sbarScale);
       int scaledSbarTotal = (int)(mViewInfo.sbarTotal * mViewInfo.sbarScale);
       const int offset =
-         int(floor(0.5 + mViewInfo.sbarScale * PixelWidthBeforeTime(0.0)));
+         (int)(floor(0.5 + mViewInfo.sbarScale * PixelWidthBeforeTime(0.0)));
 
       mHsbar->SetScrollbar(scaledSbarH + offset, scaledSbarScreen, scaledSbarTotal,
          scaledSbarScreen, TRUE);
@@ -2020,11 +2020,10 @@ void AudacityProject::HandleResize()
 // How many projects that do not have a name yet?
 int AudacityProject::CountUnnamed()
 {
-   int i;
-   int j=0;
-   for(i=0;i<gAudacityProjects.size();i++){
-      if(gAudacityProjects[i])
-         if( gAudacityProjects[i]->GetName().IsEmpty() )
+   int j = 0;
+   for ( size_t i = 0; i < gAudacityProjects.size(); i++) {
+      if ( gAudacityProjects[i] )
+         if ( gAudacityProjects[i]->GetName().IsEmpty() )
             j++;
    }
    return j;
@@ -2032,10 +2031,9 @@ int AudacityProject::CountUnnamed()
 
 void AudacityProject::RefreshAllTitles(bool bShowProjectNumbers )
 {
-   int i;
-   for(i=0;i<gAudacityProjects.size();i++){
-      if(gAudacityProjects[i]){
-         if( !gAudacityProjects[i]->mIconized ){
+   for ( size_t i = 0; i < gAudacityProjects.size(); i++) {
+      if ( gAudacityProjects[i] ) {
+         if ( !gAudacityProjects[i]->mIconized ) {
             AudacityProject * p;
             p = gAudacityProjects[i].get();
             p->SetProjectTitle( bShowProjectNumbers ? p->GetProjectNumber() : -1 );
@@ -2458,7 +2456,7 @@ void AudacityProject::OnCloseWindow(wxCloseEvent & event)
          TitleRestorer Restorer( this );// RAII
          /* i18n-hint: The first %s numbers the project, the second %s is the project name.*/
          wxString Title =  wxString::Format(_("%sSave changes to %s?"), Restorer.sProjNumber.c_str(), Restorer.sProjName.c_str());
-         wxString Message = _("Save changes before closing?");
+         wxString Message = _("Save project before closing?");
          if( !bHasTracks )
          {
           Message += _("\nIf saved, the project will have no tracks.\n\nTo save any previously open tracks:\nCancel, Edit > Undo until all tracks\nare open, then File > Save Project.");
@@ -4857,7 +4855,7 @@ void AudacityProject::EditClipboardByLabel( EditDestFunction action )
       {
          WaveTrack *wt = ( WaveTrack* )n;
          Track::Holder merged;
-         for( int i = ( int )regions.size() - 1; i >= 0; i-- )
+         for( int i = (int)regions.size() - 1; i >= 0; i-- )
          {
             const Region &region = regions.at(i);
             auto dest = ( wt->*action )( region.start, region.end );
