@@ -455,7 +455,9 @@ void AudacityProject::CreateMenusAndCommands()
       /* i18n-hint: (verb) Do a special kind of cut*/
       c->AddItem(wxT("SplitCut"), _("Spl&it Cut"), FN(OnSplitCut), wxT("Ctrl+Alt+X"));
       /* i18n-hint: (verb) Do a special kind of DELETE*/
-      c->AddItem(wxT("SplitDelete"), _("Split D&elete"), FN(OnSplitDelete), wxT("Ctrl+Alt+K"));
+      c->AddItem(wxT("SplitDelete"), _("Split D&elete"), FN(OnSplitDelete), wxT("Ctrl+Alt+K"),
+         AudioIONotBusyFlag | TimeSelectedFlag | WaveTracksSelectedFlag,
+         AudioIONotBusyFlag | TimeSelectedFlag | WaveTracksSelectedFlag);
 
       c->AddSeparator();
 
@@ -556,6 +558,9 @@ void AudacityProject::CreateMenusAndCommands()
 
       c->AddItem(wxT("SelStartCursor"), _("Track &Start to Cursor"), FN(OnSelectStartCursor), wxT("Shift+J"));
       c->AddItem(wxT("SelCursorEnd"), _("Cursor to Track &End"), FN(OnSelectCursorEnd), wxT("Shift+K"));
+      c->AddItem(wxT("SelCursorStoredCursor"), _("Cursor to Stored &Cursor Position"), FN(OnSelectCursorStoredCursor),
+         wxT(""), TracksExistFlag, TracksExistFlag);
+
 
       c->AddSeparator();
 
@@ -592,12 +597,15 @@ void AudacityProject::CreateMenusAndCommands()
 
       c->AddSeparator();
 
-      c->AddItem(wxT("SelSave"), _("Re&gion Save"), FN(OnSelectionSave),
+      c->AddItem(wxT("SelSave"), _("Store Re&gion"), FN(OnSelectionSave),
          WaveTracksSelectedFlag,
          WaveTracksSelectedFlag);
-      c->AddItem(wxT("SelRestore"), _("Regio&n Restore"), FN(OnSelectionRestore),
+      c->AddItem(wxT("SelRestore"), _("Retrieve Regio&n"), FN(OnSelectionRestore),
          TracksExistFlag,
          TracksExistFlag);
+      c->AddItem(wxT("StoreCursorPosition"), _("Store Cursor Pos&ition"), FN(OnCursorPositionStore),
+         WaveTracksExistFlag,
+         WaveTracksExistFlag);
 
       c->AddSeparator();
 
@@ -660,7 +668,7 @@ void AudacityProject::CreateMenusAndCommands()
 
       c->AddSeparator();
       c->AddItem(wxT("CollapseAllTracks"), _("&Collapse All Tracks"), FN(OnCollapseAllTracks), wxT("Ctrl+Shift+C"));
-      c->AddItem(wxT("ExpandAllTracks"), _("E&xpand All Tracks"), FN(OnExpandAllTracks), wxT("Ctrl+Shift+X"));
+      c->AddItem(wxT("ExpandAllTracks"), _("E&xpand Collapsed Tracks"), FN(OnExpandAllTracks), wxT("Ctrl+Shift+X"));
 
       c->AddSeparator();
       c->AddCheck(wxT("ShowClipping"), _("&Show Clipping"), FN(OnShowClipping),
@@ -751,7 +759,7 @@ void AudacityProject::CreateMenusAndCommands()
 
       /* i18n-hint: (verb) Start or Stop audio playback*/
       c->AddItem(wxT("PlayStop"), _("Pl&ay/Stop"), FN(OnPlayStop), wxT("Space"));
-      c->AddItem(wxT("PlayStopSelect"), _("Play/Stop and &Set Cursor"), FN(OnPlayStopSelect), wxT("Shift+A"));
+      c->AddItem(wxT("PlayStopSelect"), _("Play/Stop and &Set Cursor"), FN(OnPlayStopSelect), wxT("X"));
       c->AddItem(wxT("PlayLooped"), _("&Loop Play"), FN(OnPlayLooped), wxT("Shift+Space"),
          WaveTracksExistFlag | AudioIONotBusyFlag | CanStopAudioStreamFlag,
          WaveTracksExistFlag | AudioIONotBusyFlag | CanStopAudioStreamFlag);
@@ -901,15 +909,15 @@ void AudacityProject::CreateMenusAndCommands()
       c->AddSeparator();
 
 #ifdef EXPERIMENTAL_SYNC_LOCK
-      c->AddCheck(wxT("SyncLock"), _("Sync-&Lock Tracks"), FN(OnSyncLock), 0,
+      c->AddCheck(wxT("SyncLock"), _("Sync-&Lock Tracks (on/off)"), FN(OnSyncLock), 0,
          AlwaysEnabledFlag, AlwaysEnabledFlag);
 
       c->AddSeparator();
 #endif
 
-      c->AddItem(wxT("AddLabel"), _("Add Label At &Selection"), FN(OnAddLabel), wxT("Ctrl+B"),
+      c->AddItem(wxT("AddLabel"), _("Add Label at &Selection"), FN(OnAddLabel), wxT("Ctrl+B"),
          AlwaysEnabledFlag, AlwaysEnabledFlag);
-      c->AddItem(wxT("AddLabelPlaying"), _("Add Label At &Playback Position"),
+      c->AddItem(wxT("AddLabelPlaying"), _("Add Label at &Playback Position"),
          FN(OnAddLabelPlaying),
 #ifdef __WXMAC__
          wxT("Ctrl+."),
@@ -919,6 +927,9 @@ void AudacityProject::CreateMenusAndCommands()
          AudioIOBusyFlag, 
          AudioIOBusyFlag);
       c->AddItem(wxT("EditLabels"), _("&Edit Labels..."), FN(OnEditLabels));
+
+      c->AddCheck(wxT("TypeToCreateLabel"), _("&Type to Create a Label (on/off)"),
+                  FN(OnToggleTypeToCreateLabel), 0, AlwaysEnabledFlag, AlwaysEnabledFlag);
 
       c->AddSeparator();
 
@@ -1250,6 +1261,11 @@ void AudacityProject::CreateMenusAndCommands()
    c->AddCommand(wxT("SetPlaySpeed"), _("Adjust playback speed"), FN(OnSetPlaySpeed));
    c->AddCommand(wxT("PlaySpeedInc"), _("Increase playback speed"), FN(OnPlaySpeedInc));
    c->AddCommand(wxT("PlaySpeedDec"), _("Decrease playback speed"), FN(OnPlaySpeedDec));
+
+   c->AddCommand(wxT("MoveToNextLabel"), _("Move to Next Label"), FN(OnMoveToNextLabel), wxT("Alt+Right"),
+      CaptureNotBusyFlag | TrackPanelHasFocus, CaptureNotBusyFlag | TrackPanelHasFocus);
+   c->AddCommand(wxT("MoveToPrevLabel"), _("Move to Previous Label"), FN(OnMoveToPrevLabel), wxT("Alt+Left"),
+      CaptureNotBusyFlag | TrackPanelHasFocus, CaptureNotBusyFlag | TrackPanelHasFocus);
 
 #ifdef __WXMAC__
    /* i8n-hint: Shrink all project windows to icons on the Macintosh tooldock */
@@ -1679,13 +1695,30 @@ CommandFlag AudacityProject::GetFocusedFrame()
    return AlwaysEnabledFlag;
 }
 
-CommandFlag AudacityProject::GetUpdateFlags()
+CommandFlag AudacityProject::GetUpdateFlags(bool checkActive)
 {
    // This method determines all of the flags that determine whether
    // certain menu items and commands should be enabled or disabled,
    // and returns them in a bitfield.  Note that if none of the flags
    // have changed, it's not necessary to even check for updates.
    auto flags = AlwaysEnabledFlag;
+   // static variable, used to remember flags for next time.
+   static auto lastFlags = flags;
+
+   if (auto focus = wxWindow::FindFocus()) {
+      while (focus && focus->GetParent())
+         focus = focus->GetParent();
+      if (focus && !static_cast<wxTopLevelWindow*>(focus)->IsIconized())
+         flags |= NotMinimizedFlag;
+   }
+
+   // quick 'short-circuit' return.
+   if ( checkActive && !IsActive() ){
+      // short cirucit return should preserve flags that have not been calculated.
+      flags = (lastFlags & ~NotMinimizedFlag) | flags;
+      lastFlags = flags;
+      return flags;
+   }
 
    if (!gAudioIO->IsAudioTokenActive(GetAudioIOToken()))
       flags |= AudioIONotBusyFlag;
@@ -1775,8 +1808,11 @@ CommandFlag AudacityProject::GetUpdateFlags()
    if (ZoomOutAvailable() && (flags & TracksExistFlag))
       flags |= ZoomOutAvailableFlag;
 
-   if ((flags & LabelTracksExistFlag) && LabelTrack::IsTextClipSupported())
-      flags |= TextClipFlag;
+   // TextClipFlag is currently unused (Jan 2017, 2.1.3 alpha)
+   // and LabelTrack::IsTextClipSupported() is quite slow on Linux,
+   // so disable for now (See bug 1575).
+   // if ((flags & LabelTracksExistFlag) && LabelTrack::IsTextClipSupported())
+   //    flags |= TextClipFlag;
 
    flags |= GetFocusedFrame();
 
@@ -1813,13 +1849,7 @@ CommandFlag AudacityProject::GetUpdateFlags()
    if (bar->ControlToolBar::CanStopAudioStream())
       flags |= CanStopAudioStreamFlag;
 
-   if (auto focus = wxWindow::FindFocus()) {
-      while (focus && focus->GetParent())
-         focus = focus->GetParent();
-      if (focus && !static_cast<wxTopLevelWindow*>(focus)->IsIconized())
-         flags |= NotMinimizedFlag;
-   }
-
+   lastFlags = flags;
    return flags;
 }
 
@@ -1906,11 +1936,13 @@ void AudacityProject::ModifyToolbarMenus()
    gPrefs->Read(wxT("/GUI/SyncLockTracks"), &active, false);
    SetSyncLock(active);
    mCommandManager.Check(wxT("SyncLock"), active);
+   gPrefs->Read(wxT("/GUI/TypeToCreateLabel"),&active, true);
+   mCommandManager.Check(wxT("TypeToCreateLabel"), active);
 }
 
 // checkActive is a temporary hack that should be removed as soon as we
 // get multiple effect preview working
-void AudacityProject::UpdateMenus(bool /*checkActive*/)
+void AudacityProject::UpdateMenus(bool checkActive)
 {
    //ANSWER-ME: Why UpdateMenus only does active project?
    //JKC: Is this test fixing a bug when multiple projects are open?
@@ -1918,10 +1950,7 @@ void AudacityProject::UpdateMenus(bool /*checkActive*/)
    if (this != GetActiveProject())
       return;
 
-   //if (checkActive && !IsActive())
-     // return;
-
-   auto flags = GetUpdateFlags();
+   auto flags = GetUpdateFlags(checkActive);
    auto flags2 = flags;
 
    // We can enable some extra items if we have select-all-on-none.
@@ -1962,21 +1991,20 @@ void AudacityProject::UpdateMenus(bool /*checkActive*/)
    // been enabled, since we changed the flags.  Here we manually disable them.
    if (mSelectAllOnNone)
    {
-      if (!(flags & TracksSelectedFlag))
+      if (!(flags & TimeSelectedFlag) | !(flags & TracksSelectedFlag))
       {
          mCommandManager.Enable(wxT("SplitCut"), false);
-
-         if (!(flags & WaveTracksSelectedFlag))
-         {
-            mCommandManager.Enable(wxT("Split"), false);
-         }
-         if (!(flags & TimeSelectedFlag))
-         {
-            mCommandManager.Enable(wxT("ExportSel"), false);
-            mCommandManager.Enable(wxT("SplitNew"), false);
-            mCommandManager.Enable(wxT("Trim"), false);
-            mCommandManager.Enable(wxT("SplitDelete"), false);
-         }
+      }
+      if (!(flags & WaveTracksSelectedFlag))
+      {
+         mCommandManager.Enable(wxT("Split"), false);
+      }
+      if (!(flags & TimeSelectedFlag) | !(flags & WaveTracksSelectedFlag))
+      {
+         mCommandManager.Enable(wxT("ExportSel"), false);
+         mCommandManager.Enable(wxT("SplitNew"), false);
+         mCommandManager.Enable(wxT("Trim"), false);
+         mCommandManager.Enable(wxT("SplitDelete"), false);
       }
    }
 
@@ -2656,6 +2684,73 @@ void AudacityProject::OnSelToEnd()
    ModifyState(false);
 }
 
+void AudacityProject::OnMoveToNextLabel()
+{
+   OnMoveToLabel(true);
+}
+
+void AudacityProject::OnMoveToPrevLabel()
+{
+   OnMoveToLabel(false);
+}
+
+void AudacityProject::OnMoveToLabel(bool next)
+{
+   // Find the number of label tracks, and ptr to last track found
+   Track* track = nullptr;
+   int nLabelTrack = 0;
+   TrackListOfKindIterator iter(Track::Label, &*mTracks);
+   for (Track* t = iter.First(); t; t = iter.Next()) {
+      nLabelTrack++;
+      track = t;
+   }
+
+   if (nLabelTrack == 0 ) {
+      mTrackPanel->MessageForScreenReader(_("no label track"));
+   }
+   else if (nLabelTrack > 1) {         // find first label track, if any, starting at the focused track
+      track = mTrackPanel->GetFocusedTrack();
+      while (track && track->GetKind() != Track::Label) {
+         track = mTracks->GetNext(track, true);
+         if (!track) {
+          mTrackPanel->MessageForScreenReader(_("no label track at or below focused track"));
+         }
+      }
+   }
+
+   // If there is a single label track, or there is a label track at or below the focused track
+   if (track) {
+      LabelTrack* lt = static_cast<LabelTrack*>(track);
+      int i;
+      if (next)
+         i = lt->FindNextLabel(GetSelection());
+      else
+         i = lt->FindPrevLabel(GetSelection());
+
+      if (i >= 0) {
+         const LabelStruct* label = lt->GetLabel(i);
+         if (IsAudioActive()) {
+            OnPlayStop();     // stop
+            GetViewInfo().selectedRegion = label->selectedRegion;
+            RedrawProject();
+            OnPlayStop();     // play
+         }
+         else {
+            GetViewInfo().selectedRegion = label->selectedRegion;
+            mTrackPanel->ScrollIntoView(GetViewInfo().selectedRegion.t0());
+            RedrawProject();
+         }
+
+         wxString message;
+         message.Printf(wxT("%s %d of %d"), label->title, i + 1, lt->GetNumLabels() );
+         mTrackPanel->MessageForScreenReader(message);
+      }
+      else {
+         mTrackPanel->MessageForScreenReader(_("no labels in label track"));
+      }
+   }
+}
+
 void AudacityProject::OnCursorUp()
 {
    mTrackPanel->OnPrevTrack( false );
@@ -2925,13 +3020,14 @@ void AudacityProject::NextWindow()
    // (Really only works on Windows)
    w->Raise();
 
-#ifdef __WXMAC__
+
+#if defined(__WXMAC__) || defined(__WXGTK__)
    // bug 868
    // Simulate a TAB key press before continuing, else the cycle of
    // navigation among top level windows stops because the keystrokes don't
    // go to the CommandManager.
    if (dynamic_cast<wxDialog*>(w)) {
-      w->NavigateIn();
+      w->SetFocus();
    }
 #endif
 }
@@ -2976,13 +3072,14 @@ void AudacityProject::PrevWindow()
    // (Really only works on Windows)
    w->Raise();
 
-#ifdef __WXMAC__
+
+#if defined(__WXMAC__) || defined(__WXGTK__)
    // bug 868
    // Simulate a TAB key press before continuing, else the cycle of
    // navigation among top level windows stops because the keystrokes don't
    // go to the CommandManager.
    if (dynamic_cast<wxDialog*>(w)) {
-      w->NavigateIn();
+      w->SetFocus();
    }
 #endif
 }
@@ -4024,6 +4121,9 @@ void AudacityProject::OnCut()
    RedrawProject();
 
    mViewInfo.selectedRegion.collapseToT0();
+
+   if (mHistoryWindow)
+      mHistoryWindow->UpdateDisplay();
 }
 
 
@@ -4066,6 +4166,9 @@ void AudacityProject::OnSplitCut()
    PushState(_("Split-cut to the clipboard"), _("Split Cut"));
 
    RedrawProject();
+
+   if (mHistoryWindow)
+      mHistoryWindow->UpdateDisplay();
 }
 
 
@@ -4110,6 +4213,9 @@ void AudacityProject::OnCopy()
 
    //Make sure the menus/toolbar states get updated
    mTrackPanel->Refresh(false);
+
+   if (mHistoryWindow)
+      mHistoryWindow->UpdateDisplay();
 }
 
 void AudacityProject::OnPaste()
@@ -4127,7 +4233,7 @@ void AudacityProject::OnPaste()
    double t1 = mViewInfo.selectedRegion.t1();
 
    TrackListIterator iter(GetTracks());
-   TrackListIterator clipIter(msClipboard.get());
+   TrackListConstIterator clipIter(msClipboard.get());
 
    Track *n = iter.First();
    const Track *c = clipIter.First();
@@ -4372,8 +4478,8 @@ bool AudacityProject::HandlePasteNothingSelected()
       return false;
    else
    {
-      TrackListIterator iterClip(msClipboard.get());
-      Track* pClip = iterClip.First();
+      TrackListConstIterator iterClip(msClipboard.get());
+      auto pClip = iterClip.First();
       if (!pClip)
          return true; // nothing to paste
 
@@ -5089,6 +5195,18 @@ void AudacityProject::OnSelectStartCursor()
    ModifyState(false);
 
    mTrackPanel->Refresh(false);
+}
+
+void AudacityProject::OnSelectCursorStoredCursor()
+{
+   if (mCursorPositionHasBeenStored) {
+      double cursorPositionCurrent = IsAudioActive() ? gAudioIO->GetStreamTime() : mViewInfo.selectedRegion.t0();
+      mViewInfo.selectedRegion.setTimes(std::min(cursorPositionCurrent, mCursorPositionStored),
+         std::max(cursorPositionCurrent, mCursorPositionStored));
+
+      ModifyState(false);
+      mTrackPanel->Refresh(false);
+   }
 }
 
 void AudacityProject::OnSelectSyncLockSel()
@@ -5807,6 +5925,12 @@ void AudacityProject::OnSelectionSave()
    mRegionSave =  mViewInfo.selectedRegion;
 }
 
+void AudacityProject::OnCursorPositionStore()
+{
+   mCursorPositionStored = IsAudioActive() ? gAudioIO->GetStreamTime() : mViewInfo.selectedRegion.t0();
+   mCursorPositionHasBeenStored = true;
+}
+
 void AudacityProject::OnSelectionRestore()
 {
    if ((mRegionSave.t0() == 0.0) &&
@@ -6458,11 +6582,8 @@ void AudacityProject::OnTimerRecord()
       switch (iTimerRecordingOutcome) {
       case POST_TIMER_RECORD_CANCEL_WAIT:
          // Canceled on the wait dialog
-         if (GetUndoManager()->UndoAvailable()) {
-            // MY: We need to roll back what changes we have made here
-            OnUndo();
-         }
-      break;
+         RollbackState();
+         break;
       case POST_TIMER_RECORD_CANCEL:
          // RunWaitDialog() shows the "wait for start" as well as "recording" dialog
          // if it returned POST_TIMER_RECORD_CANCEL it means the user cancelled while the recording, so throw out the fresh track.
@@ -6470,26 +6591,26 @@ void AudacityProject::OnTimerRecord()
          // which is blocked by this function.
          // so instead we mark a flag to undo it there.
          mTimerRecordCanceled = true;
-      break;
+         break;
       case POST_TIMER_RECORD_NOTHING:
          // No action required
-      break;
+         break;
       case POST_TIMER_RECORD_CLOSE:
          // Quit Audacity
          exit(0);
-      break;
+         break;
       case POST_TIMER_RECORD_RESTART:
          // Restart System
 #ifdef __WINDOWS__
          system("shutdown /r /f /t 30");
 #endif
-      break;
+         break;
       case POST_TIMER_RECORD_SHUTDOWN:
          // Shutdown System
 #ifdef __WINDOWS__
          system("shutdown /s /f /t 30");
 #endif
-      break;
+         break;
       }
    }
 }
@@ -6619,6 +6740,15 @@ void AudacityProject::DoEditLabels(LabelTrack *lt, int index)
 void AudacityProject::OnEditLabels()
 {
    DoEditLabels();
+}
+
+void AudacityProject::OnToggleTypeToCreateLabel()
+{
+   bool typeToCreateLabel;
+   gPrefs->Read(wxT("/GUI/TypeToCreateLabel"), &typeToCreateLabel, true);
+   gPrefs->Write(wxT("/GUI/TypeToCreateLabel"), !typeToCreateLabel);
+   gPrefs->Flush();
+   ModifyAllProjectToolbarMenus();
 }
 
 void AudacityProject::OnApplyChain()

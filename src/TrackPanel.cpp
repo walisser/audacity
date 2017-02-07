@@ -507,8 +507,6 @@ TrackPanel::TrackPanel(wxWindow * parent, wxWindowID id,
    mLabelTrackMenu = NULL;
    mTimeTrackMenu = NULL;
 
-   BuildMenus();
-
    mTrackArtist = std::make_unique<TrackArtist>();
 
    mTrackArtist->SetInset(1, kTopMargin, kRightMargin, kBottomMargin);
@@ -1347,6 +1345,12 @@ bool TrackPanel::SetCursorForCutline(WaveTrack * track, wxRect &rect, const wxMo
    return false;
 }
 
+#if defined(__WXMAC__)
+#define CTRL_CLICK _("Command-Click")
+#else
+#define CTRL_CLICK _("Ctrl-Click")
+#endif
+
 /// When in the "label" (TrackInfo or vertical ruler), we can either vertical zoom or re-order tracks.
 /// Dont't change cursor/tip to zoom if display is not waveform (either linear of dB) or Spectrum
 void TrackPanel::SetCursorAndTipWhenInLabel( Track * t,
@@ -1363,9 +1367,26 @@ void TrackPanel::SetCursorAndTipWhenInLabel( Track * t,
       SetCursor(event.ShiftDown() ? *mZoomOutCursor : *mZoomInCursor);
    }
 #endif
+   else if (event.m_x >= GetVRulerOffset() ){
+      // In VRuler but probably in a label track, and clicks don't do anything here, so no tip.
+      // Use a space for the tip, otherwsie we get he default message.
+      // TODO: Maybe the code for label tracks SHOULD treat the VRuler as part of the TrackInfo?
+      tip = wxT(" ");
+      SetCursor( *mArrowCursor );
+   }
+   else if( GetTrackCount() > 1 ){
+      // Set a status message if over TrackInfo.
+      //tip = _("Drag the track vertically to change the order of the tracks.");
+      // i18n-hint: %s is replaced by (translation of) 'Ctrl-Click' on windows, 'Command-Click' on Mac
+      tip = wxString::Format( _("%s to select or deselect track. Drag up or down to change track order."),
+         CTRL_CLICK );
+      SetCursor( *mArrowCursor );
+   }
    else {
       // Set a status message if over TrackInfo.
-      tip = _("Drag the track vertically to change the order of the tracks.");
+      // i18n-hint: %s is replaced by (translation of) 'Ctrl-Click' on windows, 'Command-Click' on Mac
+      tip = wxString::Format( _("%s to select or deselect track."),
+         CTRL_CLICK );
       SetCursor(*mArrowCursor);
    }
 }
@@ -1547,6 +1568,8 @@ void TrackPanel::SetCursorAndTipWhenSelectTool( Track * t,
    }
 
    const bool bShiftDown = event.ShiftDown();
+   const bool bCtrlDown = event.ControlDown();
+   const bool bModifierDown = bShiftDown || bCtrlDown;
 
 #ifdef EXPERIMENTAL_SPECTRAL_EDITING
    if ( (mFreqSelMode == FREQ_SEL_SNAPPING_CENTER) &&
@@ -1562,7 +1585,7 @@ void TrackPanel::SetCursorAndTipWhenSelectTool( Track * t,
    // choose boundaries only in snapping tolerance,
    // and may choose center.
    SelectionBoundary boundary =
-        ChooseBoundary(event, t, rect, !bShiftDown, !bShiftDown);
+        ChooseBoundary(event, t, rect, !bModifierDown, !bModifierDown);
 
 #ifdef USE_MIDI
    // The MIDI HitTest will only succeed if we are on a midi track, so 
@@ -1851,6 +1874,13 @@ void TrackPanel::SelectTrack(Track *pTrack, bool selected, bool updateLastPicked
 {
    bool wasCorrect = (selected == pTrack->GetSelected());
 
+   mTracks->Select(pTrack, selected);
+   if (updateLastPicked)
+      mLastPickedTrack = pTrack;
+
+//Thw older code below avoids an anchor on an unselected track.
+
+   /*
    if (selected) {
       // This handles the case of linked tracks, selecting all channels
       mTracks->Select(pTrack, true);
@@ -1862,6 +1892,7 @@ void TrackPanel::SelectTrack(Track *pTrack, bool selected, bool updateLastPicked
       if (updateLastPicked && pTrack == mLastPickedTrack)
          mLastPickedTrack = nullptr;
    }
+*/
 
    // Update mixer board, but only as needed so it does not flicker.
    if (!wasCorrect) {
@@ -1869,6 +1900,38 @@ void TrackPanel::SelectTrack(Track *pTrack, bool selected, bool updateLastPicked
       if (pMixerBoard && (pTrack->GetKind() == Track::Wave))
          pMixerBoard->RefreshTrackCluster(static_cast<WaveTrack*>(pTrack));
    }
+}
+
+// Counts tracks, counting stereo tracks as one track.
+size_t TrackPanel::GetTrackCount(){
+   size_t count = 0;
+
+   TrackListIterator iter(GetTracks());
+   for (Track *t = iter.First(); t; t = iter.Next()) {
+      count +=  1;
+      if( t->GetLinked() ){
+         t = iter.Next();
+         if( !t )
+            break;
+      }
+   }
+   return count;
+}
+
+// Counts selected tracks, counting stereo tracks as one track.
+size_t TrackPanel::GetSelectedTrackCount(){
+   size_t count = 0;
+
+   TrackListIterator iter(GetTracks());
+   for (Track *t = iter.First(); t; t = iter.Next()) {
+      count +=  t->GetSelected() ? 1:0;
+      if( t->GetLinked() ){
+         t = iter.Next();
+         if( !t )
+            break;
+      }
+   }
+   return count;
 }
 
 void TrackPanel::SelectRangeOfTracks(Track *sTrack, Track *eTrack)
@@ -1904,29 +1967,36 @@ void TrackPanel::ChangeSelectionOnShiftClick(Track * pTrack){
    // We will either extend from the first or from the last.
    Track* pExtendFrom= nullptr;
 
-   TrackListIterator iter(GetTracks());
-   for (Track *t = iter.First(); t; t = iter.Next()) {
-      const bool isSelected = t->GetSelected();
-      // If our track is after the first, extend from the first.
-      if( t == pTrack ){
-         pExtendFrom = pFirst;
-      }
-      // Record first and last selected.
-      if( isSelected ){
-         if( !pFirst )
-            pFirst = t;
-         pLast = t;
-      }
+   if( mLastPickedTrack ){
+      pExtendFrom = mLastPickedTrack;
    }
-   // Our track was the first or earlier.  Extend from the last.
-   if( !pExtendFrom )
-      pExtendFrom = pLast;
+   else
+   {
+      TrackListIterator iter(GetTracks());
+      for (Track *t = iter.First(); t; t = iter.Next()) {
+         const bool isSelected = t->GetSelected();
+         // Record first and last selected.
+         if( isSelected ){
+            if( !pFirst )
+               pFirst = t;
+            pLast = t;
+         }
+         // If our track is at or after the first, extend from the first.
+         if( t == pTrack ){
+            pExtendFrom = pFirst;
+         }
+      }
+      // Our track was earlier than the first.  Extend from the last.
+      if( !pExtendFrom )
+         pExtendFrom = pLast;
+   }
 
    SelectNone();
    if( pExtendFrom )
       SelectRangeOfTracks(pTrack, pExtendFrom);
    else
       SelectTrack( pTrack, true );
+   mLastPickedTrack = pExtendFrom;
 }
 
 /// This method gets called when we're handling selection
@@ -1976,11 +2046,14 @@ void TrackPanel::SelectionHandleClick(wxMouseEvent & event,
       if( bShiftDown )
          ChangeSelectionOnShiftClick( pTrack );
       if( bCtrlDown ){
+         //Commented out bIsSelected toggles, as in Track Control Panel.
          //bool bIsSelected = pTrack->GetSelected();
+         //Actual bIsSelected will always add.
          bool bIsSelected = false;
-         // could set bIsSelected true here, but toggling is more technically correct.
-         // if we want to match behaviour in Track Control Panel.
-         SelectTrack( pTrack, !bIsSelected, false );
+         // Don't toggle away the last selected track.
+         if( !bIsSelected || GetSelectedTrackCount() > 1 )
+            SelectTrack( pTrack, !bIsSelected, true );
+         mLastPickedTrack = pTrack;
       }
 
       double value;
@@ -2070,7 +2143,7 @@ void TrackPanel::SelectionHandleClick(wxMouseEvent & event,
 
             return;
          }
-      else
+         else
 #endif
          {
             // Not shift-down, choose boundary only within snapping
@@ -2331,6 +2404,12 @@ void TrackPanel::UpdateAccessibility()
 {
    if (mAx)
       mAx->Updated();
+}
+
+void TrackPanel::MessageForScreenReader(const wxString& message)
+{
+   if (mAx)
+      mAx->MessageForScreenReader(message);
 }
 
 #ifdef EXPERIMENTAL_SPECTRAL_EDITING
@@ -2821,7 +2900,8 @@ void TrackPanel::SelectionHandleDrag(wxMouseEvent & event, Track *clickedTrack)
    // Handle which tracks are selected
    Track *sTrack = pTrack;
    Track *eTrack = FindTrack(x, y, false, false, NULL);
-   SelectRangeOfTracks(sTrack, eTrack);
+   if( !event.ControlDown() )
+      SelectRangeOfTracks(sTrack, eTrack);
 
 #ifdef USE_MIDI
    if (mStretching) {
@@ -4654,6 +4734,8 @@ void TrackPanel::HandleClosing(wxMouseEvent & event)
    else if (event.LeftUp()) {
       mTrackInfo.DrawCloseBox(&dc, rect, false);
       if (closeRect.Contains(event.m_x, event.m_y)) {
+         AudacityProject *p = GetProject();
+         p->StopIfPaused();
          if (!IsUnsafe())
             GetProject()->RemoveTrack(t);
       }
@@ -5047,7 +5129,7 @@ void TrackPanel::HandleListSelection(Track *t, bool shift, bool ctrl,
    // AS: If the shift button is being held down, invert
    //  the selection on this track.
    if (ctrl) {
-      SelectTrack(t, !t->GetSelected(), false);
+      SelectTrack(t, !t->GetSelected(), true);
       Refresh(false);
    }
    else {
@@ -5781,14 +5863,26 @@ void TrackPanel::HandleWheelRotationInVRuler
                else
                   settings.NextHigherDBRange();
             }
-            const float extreme = (LINEAR_TO_DB(2) + newdBRange) / newdBRange;
-            max = std::min(extreme, max * olddBRange / newdBRange);
-            min = std::max(-extreme, min * olddBRange / newdBRange);
-            wt->SetLastdBRange();
-            wt->SetDisplayBounds(min, max);
-            if (partner) {
-               partner->SetLastdBRange();
-               partner->SetDisplayBounds(min, max);
+
+            // Is y coordinate within the rectangle half-height centered about
+            // the zero level?
+            const auto zeroLevel = wt->ZeroLevelYCoordinate(rect);
+            const bool fixedMagnification =
+               (4 * std::abs(event.GetY() - zeroLevel) < rect.GetHeight());
+
+            if (fixedMagnification) {
+               // Vary the db limit without changing
+               // magnification; that is, peaks and troughs move up and down
+               // rigidly, as parts of the wave near zero are exposed or hidden.
+               const float extreme = (LINEAR_TO_DB(2) + newdBRange) / newdBRange;
+               max = std::min(extreme, max * olddBRange / newdBRange);
+               min = std::max(-extreme, min * olddBRange / newdBRange);
+               wt->SetLastdBRange();
+               wt->SetDisplayBounds(min, max);
+               if (partner) {
+                  partner->SetLastdBRange();
+                  partner->SetDisplayBounds(min, max);
+               }
             }
          }
       }
@@ -7647,10 +7741,12 @@ void TrackPanel::OnTrackMenu(Track *t)
          (next && isMono && !next->GetLinked() &&
           next->GetKind() == Track::Wave);
 
-      theMenu->Enable(OnSwapChannelsID, t->GetLinked());
-      theMenu->Enable(OnMergeStereoID, canMakeStereo);
-      theMenu->Enable(OnSplitStereoID, t->GetLinked());
-      theMenu->Enable(OnSplitStereoMonoID, t->GetLinked());
+      // Unsafe to change channels during real-time preview (bug 1560)
+      bool unsafe = EffectManager::Get().RealtimeIsActive() && IsUnsafe();
+      theMenu->Enable(OnSwapChannelsID, t->GetLinked() && !unsafe);
+      theMenu->Enable(OnMergeStereoID, canMakeStereo && !unsafe);
+      theMenu->Enable(OnSplitStereoID, t->GetLinked() && !unsafe);
+      theMenu->Enable(OnSplitStereoMonoID, t->GetLinked() && !unsafe);
 
       // We only need to set check marks. Clearing checks causes problems on Linux (bug 851)
       // + Setting unchecked items to false is to get round a linux bug
@@ -7692,7 +7788,7 @@ void TrackPanel::OnTrackMenu(Track *t)
       SetMenuCheck(*mRateMenu, IdOfRate((int) track->GetRate()));
       SetMenuCheck(*mFormatMenu, IdOfFormat(track->GetSampleFormat()));
 
-      bool unsafe = IsUnsafe();
+      unsafe = IsUnsafe();
       for (int i = OnRate8ID; i <= OnFloatID; i++) {
          theMenu->Enable(i, !unsafe);
       }

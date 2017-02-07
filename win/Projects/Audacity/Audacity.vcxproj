@@ -711,7 +711,7 @@
   <ItemGroup>
     <copy Include="..\..\..\plug-ins\adjustable-fade.ny" />
     <copy Include="..\..\..\plug-ins\beat.ny" />
-    <copy Include="..\..\..\plug-ins\clicktrack.ny" />
+    <copy Include="..\..\..\plug-ins\rhythmtrack.ny" />
     <copy Include="..\..\..\plug-ins\clipfix.ny" />
     <copy Include="..\..\..\plug-ins\crossfadeclips.ny" />
     <copy Include="..\..\..\plug-ins\crossfadetracks.ny" />
@@ -724,6 +724,7 @@
     <copy Include="..\..\..\plug-ins\pluck.ny" />
     <copy Include="..\..\..\plug-ins\rissetdrum.ny" />
     <copy Include="..\..\..\plug-ins\sample-data-export.ny" />
+    <copy Include="..\..\..\plug-ins\sample-data-import.ny" />
     <copy Include="..\..\..\plug-ins\SilenceMarker.ny" />
     <copy Include="..\..\..\plug-ins\SoundFinder.ny" />
     <copy Include="..\..\..\plug-ins\SpectralEditMulti.ny" />
@@ -1023,7 +1024,9 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\$(IntDir)\Nyquist\%(Filename)%(Extension)</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\$(IntDir)\Nyquist\%(Filename)%(Extension)</Outputs>
     </CustomBuild>
-    <None Include="..\..\ny.rules" />
+    <None Include="..\..\ny.rules">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="..\..\po.rules" />
   </ItemGroup>
   <ItemGroup>

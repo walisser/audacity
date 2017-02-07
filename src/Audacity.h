@@ -24,10 +24,17 @@
 #ifndef __AUDACITY_H__
 #define __AUDACITY_H__
 
+// If building with GNU compiler, then must be 4.9 or later.
+// TODO: This would be much nicer as a standalone test in configure.ac
+#if !defined(__APPLE__) && defined __GNUC__ && ( __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 9))
+#error insufficient compiler
+#endif
+
+
 // We only do alpha builds and release versions.
 // Most of the time we're in development, so IS_ALPHA should be defined
 // to 1.
-#define IS_ALPHA 1
+#define IS_ALPHA 0
 
 // Increment as appropriate every time we release a NEW version.
 #define AUDACITY_VERSION   2

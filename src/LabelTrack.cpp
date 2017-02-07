@@ -105,7 +105,8 @@ LabelTrack::LabelTrack(const std::shared_ptr<DirManager> &projDirManager):
    mMouseOverLabelRight(-1),
    mRestoreFocus(-1),
    mClipLen(0.0),
-   mIsAdjustingLabel(false)
+   mIsAdjustingLabel(false),
+   miLastLabel(-1)
 {
    SetDefaultName(_("Label Track"));
    SetName(GetDefaultName());
@@ -1686,7 +1687,9 @@ bool LabelTrack::CaptureKey(wxKeyEvent & event)
       }
    }
    else {
-      if (IsGoodLabelFirstKey(event)) {
+      bool typeToCreateLabel;
+      gPrefs->Read(wxT("/GUI/TypeToCreateLabel"), &typeToCreateLabel, true);
+      if (IsGoodLabelFirstKey(event) && typeToCreateLabel) {
          AudacityProject * pProj = GetActiveProject();
 
          // If we're playing, don't capture if the selection is the same as the
@@ -1866,15 +1869,13 @@ bool LabelTrack::OnKeyDown(SelectedRegion &newSel, wxKeyEvent & event)
                mSelIndex++;
          }
 
-         if (mSelIndex >= 0 && mSelIndex < (int)mLabels.size()) {
+         mSelIndex = (mSelIndex + (int)mLabels.size()) % (int)mLabels.size();    // wrap round if necessary
+         {
             LabelStruct &newLabel = mLabels[mSelIndex];
             mCurrentCursorPos = newLabel.title.Length();
+            mInitialCursorPos = mCurrentCursorPos;
             //Set the selection region to be equal to the selection bounds of the tabbed-to label.
             newSel = newLabel.selectedRegion;
-         }
-         else {
-            newSel = SelectedRegion{};
-            mSelIndex = -1;
          }
          break;
 
@@ -1920,6 +1921,7 @@ bool LabelTrack::OnKeyDown(SelectedRegion &newSel, wxKeyEvent & event)
             if (mSelIndex >= 0 && mSelIndex < len) {
                const auto &labelStruct = mLabels[mSelIndex];
                mCurrentCursorPos = labelStruct.title.Length();
+               mInitialCursorPos = mCurrentCursorPos;
                //Set the selection region to be equal to the selection bounds of the tabbed-to label.
                newSel = labelStruct.selectedRegion;
             }
@@ -2848,4 +2850,56 @@ wxString LabelTrack::GetTextOfLabels(double t0, double t1) const
    }
 
    return retVal;
+}
+
+int LabelTrack::FindNextLabel(const SelectedRegion& currentRegion)
+{
+   int i = -1;
+
+   if (!mLabels.empty()) {
+      int len = (int) mLabels.size();
+      if (miLastLabel >= 0 && miLastLabel + 1 < len
+         && currentRegion.t0() == mLabels[miLastLabel].getT0()
+         && currentRegion.t0() == mLabels[miLastLabel + 1].getT0() ) {
+         i = miLastLabel + 1;
+      }
+      else {
+         i = 0;
+         if (currentRegion.t0() < mLabels[len - 1].getT0()) {
+            while (i < len &&
+                  mLabels[i].getT0() <= currentRegion.t0()) {
+               i++;
+            }
+         }
+      }
+   }
+
+   miLastLabel = i;
+   return i;
+}
+
+ int LabelTrack::FindPrevLabel(const SelectedRegion& currentRegion)
+{
+   int i = -1;
+
+   if (!mLabels.empty()) {
+      int len = (int) mLabels.size();
+      if (miLastLabel > 0 && miLastLabel < len
+         && currentRegion.t0() == mLabels[miLastLabel].getT0()
+         && currentRegion.t0() == mLabels[miLastLabel - 1].getT0() ) {
+         i = miLastLabel - 1;
+      }
+      else {
+         i = len - 1;
+         if (currentRegion.t0() > mLabels[0].getT0()) {
+            while (i >=0  &&
+                  mLabels[i].getT0() >= currentRegion.t0()) {
+               i--;
+            }
+         }
+      }
+   }
+
+   miLastLabel = i;
+   return i;
 }

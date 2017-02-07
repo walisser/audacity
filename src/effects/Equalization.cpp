@@ -938,17 +938,15 @@ void EffectEqualization::PopulateOrExchange(ShuttleGui & S)
    mUIParent->SetAutoLayout(false);
    mUIParent->Layout();
 
-   szrV->Show(szrG, true);
-   szrH->Show(szrI, true);
-   szrH->Show(szrL, false);
+   // "show" settings for graphics mode before setting the size of the dialog
+   // as this needs more space than draw mode
+   szrV->Show(szrG,true);  // eq sliders
+   szrH->Show(szrI,true);  // interpolation choice
+   szrH->Show(szrL,false); // linear freq checkbox
 
    mUIParent->SetSizeHints(mUIParent->GetBestSize());
 
 //   szrL->SetMinSize( szrI->GetSize() );
-
-   szrV->Show(szrG, false);
-   szrH->Show(szrI, false);
-   szrH->Show(szrL, true);
 
    return;
 }
@@ -984,10 +982,14 @@ bool EffectEqualization::TransferDataToWindow()
    if (mDrawMode)
    {
       mDraw->SetValue(true);
+      szrV->Show(szrG,false);    // eq sliders
+      szrH->Show(szrI,false);    // interpolation choice
+      szrH->Show(szrL,true);     // linear freq checkbox
    }
    else
    {
       mGraphic->SetValue(true);
+      UpdateGraphic();
    }
 
    TransferDataFromWindow();
@@ -1464,9 +1466,8 @@ void EffectEqualization::UpdateDefaultCurves(bool updateAll /* false */)
    EQCurveArray userCurves = mCurves;
    mCurves.Clear();
    // We only wamt to look for the shipped EQDefaultCurves.xml
-   wxFileName fn = wxFileName(wxStandardPaths::Get().GetResourcesDir(),
-                              wxT("EQDefaultCurves.xml"));
-   wxLogDebug(wxT("Attempting to load EQDefaultCurves.xml from %s"),wxStandardPaths::Get().GetResourcesDir().c_str());
+   wxFileName fn = wxFileName(FileNames::ResourcesDir(), wxT("EQDefaultCurves.xml"));
+   wxLogDebug(wxT("Attempting to load EQDefaultCurves.xml from %s"),fn.GetFullPath().c_str());
    XMLFileReader reader;
 
    if(!reader.Parse(this, fn.GetFullPath())) {
@@ -1575,9 +1576,7 @@ bool EffectEqualization::GetDefaultFileName(wxFileName &fileName)
    if( !fileName.FileExists() )
    {  // Default file not found in the data dir.  Fall back to Resources dir.
       // See http://docs.wxwidgets.org/trunk/classwx_standard_paths.html#5514bf6288ee9f5a0acaf065762ad95d
-      static wxString resourcesDir;
-      resourcesDir = wxStandardPaths::Get().GetResourcesDir();
-      fileName = wxFileName( resourcesDir, wxT("EQDefaultCurves.xml") );
+      fileName = wxFileName( FileNames::ResourcesDir(), wxT("EQDefaultCurves.xml") );
    }
    if( !fileName.FileExists() )
    {

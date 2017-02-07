@@ -205,6 +205,7 @@ class AudacityApp final : public wxApp {
    void OnMenuPreferences(wxCommandEvent & event);
    void OnMenuExit(wxCommandEvent & event);
 
+   void OnQueryEndSession(wxCloseEvent & event);
    void OnEndSession(wxCloseEvent & event);
 
    // Most Recently Used File support (for all platforms).
@@ -283,6 +284,17 @@ class AudacityApp final : public wxApp {
 
 #if defined(EXPERIMENTAL_CRASH_REPORT)
    void GenerateCrashReport(wxDebugReport::Context ctx);
+#endif
+
+#ifdef __WXMAC__
+
+   #if ! defined(__WXDEBUG__)
+   #define FIX_BUG1567
+   #endif
+
+   void MacActivateApp();
+   static bool IsSierraOrLater();
+
 #endif
 
  private:

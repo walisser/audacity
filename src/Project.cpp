@@ -524,9 +524,9 @@ bool ImportXMLTagHandler::HandleXMLTag(const wxChar *tag, const wxChar **attrs)
 
 AudacityProject *CreateNewAudacityProject()
 {
-   bool bMaximized;
    wxRect wndRect;
-   bool bIconized;
+   bool bMaximized = false;
+   bool bIconized = false;
    GetNextWindowPlacement(&wndRect, &bMaximized, &bIconized);
 
    // Create and show a NEW project
@@ -677,6 +677,16 @@ int ScreenContaining( wxRect & r ){
    return -1;
 }
 
+// true IFF TL and BR corners are on a connected display.
+// Does not need to check all four.  We just need to check that 
+// the window probably is straddling screens in a sensible way.
+// If the user wants to use mixed landscape and portrait, they can.
+bool CornersOnScreen( wxRect & r ){
+   if( wxDisplay::GetFromPoint( r.GetTopLeft()  ) == wxNOT_FOUND) return false;
+   if( wxDisplay::GetFromPoint( r.GetBottomRight()  ) == wxNOT_FOUND) return false;
+   return true;
+}
+
 // BG: Calculate where to place the next window (could be the first window)
 // BG: Does not store X and Y in prefs. This is intentional.
 //
@@ -726,6 +736,31 @@ void GetNextWindowPlacement(wxRect *nextRect, bool *pMaximized, bool *pIconized)
    }
 #endif
 
+   // IF projects empty, THEN it's the first window.
+   // It lands where the config says it should, and can straddle screen.
+   if (gAudacityProjects.empty()) {
+      if (*pMaximized || *pIconized) {
+         *nextRect = normalRect;
+      }
+      else {
+         *nextRect = windowRect;
+      }
+      // Resize, for example if one monitor that was on is now off.
+      if (!CornersOnScreen( wxRect(*nextRect).Deflate( 32, 32 ))) {
+         *nextRect = defaultRect;
+      }
+      if (!IsWindowAccessible(nextRect)) {
+         *nextRect = defaultRect;
+      }
+      // Do not trim the first project window down.
+      // All corners are on screen (or almost so), and 
+      // the rect may straddle screens.
+      return;
+   }
+
+
+   // ELSE a subsequent new window.  It will NOT straddle screens.
+
    // We don't mind being 32 pixels off the screen in any direction.
    // Make sure initial sizes (pretty much) fit within the display bounds
    // We used to trim the sizes which could result in ridiculously small windows.
@@ -739,41 +774,32 @@ void GetNextWindowPlacement(wxRect *nextRect, bool *pMaximized, bool *pIconized)
       windowRect = defaultRect;
    }
 
-   if (gAudacityProjects.empty()) {
-      if (*pMaximized || *pIconized) {
-         *nextRect = normalRect;
+   bool validWindowSize = false;
+   AudacityProject * validProject = NULL;
+   size_t numProjects = gAudacityProjects.size();
+   for (int i = numProjects; i > 0 ; i--) {
+      if (!gAudacityProjects[i-1]->IsIconized()) {
+            validWindowSize = true;
+            validProject = gAudacityProjects[i-1].get();
+            break;
       }
-      else {
-         *nextRect = windowRect;
-      }
-      if (!IsWindowAccessible(nextRect)) {
+   }
+   if (validWindowSize) {
+      *nextRect = validProject->GetRect();
+      *pMaximized = validProject->IsMaximized();
+      *pIconized = validProject->IsIconized();
+      // Do not straddle screens.
+      if (ScreenContaining( wxRect(*nextRect).Deflate( 32, 32 ) )<0) {
          *nextRect = defaultRect;
       }
    }
    else {
-      bool validWindowSize = false;
-      AudacityProject * validProject = NULL;
-      size_t numProjects = gAudacityProjects.size();
-      for (int i = numProjects; i > 0 ; i--) {
-         if (!gAudacityProjects[i-1]->IsIconized()) {
-             validWindowSize = true;
-             validProject = gAudacityProjects[i-1].get();
-             break;
-         }
-      }
-      if (validWindowSize) {
-         *nextRect = validProject->GetRect();
-         *pMaximized = validProject->IsMaximized();
-         *pIconized = validProject->IsIconized();
-      }
-      else {
-         *nextRect = normalRect;
-      }
-
-      //Placement depends on the increments
-      nextRect->x += inc;
-      nextRect->y += inc;
+      *nextRect = normalRect;
    }
+
+   //Placement depends on the increments
+   nextRect->x += inc;
+   nextRect->y += inc;
 
    // defaultrect is a rectangle on the first screen.  It's the right fallback to 
    // use most of the time if things are not working out right with sizing.
@@ -2414,6 +2440,11 @@ void AudacityProject::OnCloseWindow(wxCloseEvent & event)
       return;
    }
 
+   // TODO: consider postponing these steps until after the possible veto
+   // below:  closing the two analysis dialogs, and stopping audio streams.
+   // Streams can be for play, recording, or monitoring.  But maybe it still
+   // makes sense to stop any recording before putting up the dialog.
+
    if (mFreqWindow) {
       mFreqWindow->Destroy();
       mFreqWindow = NULL;
@@ -2472,6 +2503,18 @@ void AudacityProject::OnCloseWindow(wxCloseEvent & event)
          }
       }
    }
+
+#ifdef __WXMAC__
+   // Fix bug apparently introduced into 2.1.2 because of wxWidgets 3:
+   // closing a project that was made full-screen (as by clicking the green dot
+   // or command+/; not merely "maximized" as by clicking the title bar or
+   // Zoom in the Window menu) leaves the screen black.
+   // Fix it by un-full-screening.
+   // (But is there a different way to do this? What do other applications do?
+   //  I don't see full screen windows of Safari shrinking, but I do see
+   //  momentary blackness.)
+   ShowFullScreen(false);
+#endif
 
    ModuleManager::Get().Dispatch(ProjectClosing);
 
@@ -4137,8 +4180,22 @@ bool AudacityProject::SaveAs(const wxString & newFileName, bool bWantSaveCompres
 bool AudacityProject::SaveAs(bool bWantSaveCompressed /*= false*/)
 {
    TitleRestorer Restorer(this); // RAII
-
+   bool bHasPath = true;
    wxFileName filename(mFileName);
+   // Bug 1304: Set a default file path if none was given.  For Save/SaveAs
+   if( filename.GetFullPath().IsEmpty() ){
+      bHasPath = false;
+      filename.AssignHomeDir();
+#ifdef __WIN32__
+      filename.SetPath(gPrefs->Read( wxT("/SaveAs/Path"), filename.GetPath() + "\\Documents\\Audacity"));
+      // The path might not exist.
+      // There is no error if the path could not be created.  That's OK.
+      // The dialog that Audacity offers will allow the user to select a valid directory.
+      filename.Mkdir(0755, wxPATH_MKDIR_FULL);
+#else
+      filename.SetPath(gPrefs->Read( wxT("/SaveAs/Path"), filename.GetPath() + "/Documents"));
+#endif
+   }
 
    wxString sDialogTitle;
    if (bWantSaveCompressed)
@@ -4208,6 +4265,11 @@ For an audio file that will open in other apps, use 'Export'.\n"),
 
    if (success) {
       wxGetApp().AddFileToHistory(mFileName);
+      if( !bHasPath )
+      {
+         gPrefs->Write( wxT("/SaveAs/Path"), filename.GetPath());
+         gPrefs->Flush();
+      }
    }
    if (!success || bWantSaveCompressed) // bWantSaveCompressed doesn't actually change current project.
    {
@@ -4654,43 +4716,12 @@ void AudacityProject::OnTimer(wxTimerEvent& WXUNUSED(event))
    if (GetAudioIOToken() > 0 && gAudioIO->GetNumCaptureChannels() > 0) {
       wxLongLong freeSpace = mDirManager->GetFreeDiskSpace();
       if (freeSpace >= 0) {
-         wxString msg;
-         double recTime;
-         int recMins;
-         // JKC: Bug 50: Use preferences to get actual sample format.
-         // However there is a slight performance impact due to Bug 1436
-         // So have left the old code in that gets the size (in RAM) but 
-         // #ifdeffed out.
-#if 1
-         sampleFormat oCaptureFormat = (sampleFormat)
-               gPrefs->Read(wxT("/SamplingRate/DefaultProjectSampleFormat"), floatSample);
-#else
-         sampleFormat oCaptureFormat = gAudioIO->GetCaptureFormat();
-#endif
-         double bytesOnDiskPerSample = SAMPLE_SIZE_DISK(oCaptureFormat);
-         recTime = freeSpace.GetHi() * 4294967296.0 + freeSpace.GetLo();
-         recTime /= bytesOnDiskPerSample;
-         // note size on disk (=3 for 24-bit) not in memory (=4 for 24-bit)
-         recTime /= gAudioIO->GetNumCaptureChannels();
-         recTime /= GetRate();
-         recMins = (int)(recTime / 60.0);
+         wxString sMessage;
 
-         if (recMins >= 120)
-            msg.Printf(_("Disk space remains for recording %d hours and %d minutes."),
-                       recMins/60, recMins%60);
-         else if (recMins >= 60)
-            msg.Printf(_("Disk space remains for recording 1 hour and %d minutes."),
-                       recMins-60);
-         else if (recMins > 3)
-            msg.Printf(_("Disk space remains for recording %d minutes."),
-                       recMins);
-         else if (recTime >= 2)
-            msg.Printf(_("Disk space remains for recording %d seconds."),
-                       (int)recTime);
-         else
-            msg.Printf(_("Out of disk space"));
+         int iRecordingMins = GetEstimatedRecordingMinsLeftOnDisk(gAudioIO->GetNumCaptureChannels());
+         sMessage.Printf(_("Disk space remains for recording %s"), GetHoursMinsString(iRecordingMins));
 
-         mStatusBar->SetStatusText(msg, mainStatusBarField);
+         mStatusBar->SetStatusText(sMessage, mainStatusBarField);
       }
    }
    else if(ODManager::IsInstanceCreated())
@@ -4892,6 +4923,9 @@ void AudacityProject::EditClipboardByLabel( EditDestFunction action )
 
    msClipT0 = regions.front().start;
    msClipT1 = regions.back().end;
+
+   if (mHistoryWindow)
+      mHistoryWindow->UpdateDisplay();
 }
 
 
@@ -5528,7 +5562,7 @@ bool AudacityProject::SaveFromTimerRecording(wxFileName fnFile) {
    return bSuccess;
 }
 
-// MY: Does the project have any tracks?
+// Does the project have any tracks?
 bool AudacityProject::ProjectHasTracks() {
    // These two lines test for an 'empty' project.
    // of course it could still have a history at this stage.
@@ -5537,20 +5571,44 @@ bool AudacityProject::ProjectHasTracks() {
    return bHasTracks;
 }
 
-// MY: This routine will give an estimate of how many
+wxString AudacityProject::GetHoursMinsString(int iMinutes)
+{
+
+   wxString sFormatted = wxEmptyString;
+   wxString sHours = wxEmptyString;
+   wxString sMins = wxEmptyString;
+
+   if (iMinutes < 1) {
+      // Less than a minute...
+      sFormatted = _("Less than 1 minute");
+      return sFormatted;
+   }
+
+   // Calculate
+   int iHours = iMinutes / 60;
+   int iMins = iMinutes % 60;
+
+   // Use wxPLURAL to get strings
+   sHours = wxPLURAL("hour", "hours", iHours);
+   sMins = wxPLURAL("minute", "minutes", iMins);
+
+   /* i18n-hint: A time in hours and minutes. Only translate the "and". */
+   sFormatted.Printf(_("%d %s and %d %s."), iHours, sHours, iMins, sMins);
+   return sFormatted;
+}
+
+// This routine will give an estimate of how many
 // minutes of recording time we have available.
-// This is called from TimerRecordDialog::OnOK() to allow
-// the user to resolve a potential disk space issue before
-// Timer Recording starts.
 // The calculations made are based on the user's current
 // preferences.
-int AudacityProject::GetEstimatedRecordingMinsLeftOnDisk() {
+int AudacityProject::GetEstimatedRecordingMinsLeftOnDisk(long lCaptureChannels) {
 
    // Obtain the current settings
    sampleFormat oCaptureFormat = (sampleFormat)
       gPrefs->Read(wxT("/SamplingRate/DefaultProjectSampleFormat"), floatSample);
-   long lCaptureChannels;
-   gPrefs->Read(wxT("/AudioIO/RecordChannels"), &lCaptureChannels, 2L);
+   if (lCaptureChannels == 0) {
+      gPrefs->Read(wxT("/AudioIO/RecordChannels"), &lCaptureChannels, 2L);
+   }
 
    // Find out how much free space we have on disk
    wxLongLong lFreeSpace = mDirManager->GetFreeDiskSpace();
@@ -5567,7 +5625,7 @@ int AudacityProject::GetEstimatedRecordingMinsLeftOnDisk() {
    dRecTime /= GetRate();
 
    // Convert to minutes before returning
-   int iRecMins = (int)(dRecTime / 60.0);
+   int iRecMins = (int)round(dRecTime / 60.0);
    return iRecMins;
 }
 
