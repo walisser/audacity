@@ -70,7 +70,9 @@ public:
    sampleCount ( int v ) : value { v } {}
    sampleCount ( unsigned v ) : value { v } {}
    sampleCount ( long v ) : value { v } {}
-   sampleCount ( unsigned long v ) : value { v } {}
+   
+   // This assigment is illegal if unsigned long is 64-bit
+   sampleCount ( unsigned long v ) : value { (type)v } {}
 
    // Beware implicit conversions from floating point values!
    // Otherwise the meaning of binary operators with sampleCount change
