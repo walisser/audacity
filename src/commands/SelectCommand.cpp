@@ -21,6 +21,7 @@
 #include <wx/string.h>
 #include "../Project.h"
 #include "../Track.h"
+#include "../TrackPanel.h"
 
 wxString SelectCommandType::BuildName()
 {
@@ -48,6 +49,12 @@ void SelectCommandType::BuildSignature(CommandSignature &signature)
 
    auto trackNameValidator = make_movable<DefaultValidator>();
    signature.AddParameter(wxT("TrackName"), 0, std::move(trackNameValidator));
+
+   auto focusValidator = make_movable<OptionValidator>();
+   focusValidator->AddOption(wxT("None"));
+   focusValidator->AddOption(wxT("First"));
+   focusValidator->AddOption(wxT("Last"));
+   signature.AddParameter(wxT("FocusTrack"), wxT("None"), std::move(focusValidator));
 }
 
 CommandHolder SelectCommandType::Create(std::unique_ptr<CommandOutputTarget> &&target)
@@ -57,6 +64,10 @@ CommandHolder SelectCommandType::Create(std::unique_ptr<CommandOutputTarget> &&t
 
 bool SelectCommand::Apply(CommandExecutionContext context)
 {
+   wxString focus = GetString(wxT("FocusTrack"));
+   Track* first = nullptr;
+   Track* last = nullptr;
+
    wxString mode = GetString(wxT("Mode"));
    if (mode.IsSameAs(wxT("None")))
    {
@@ -120,7 +131,12 @@ bool SelectCommand::Apply(CommandExecutionContext context)
          t->SetSelected(sel);
 
          if (sel)
+         {
+            if (!first)
+               first = t;
+            last = t;
             Status(wxT("Selected track '") + t->GetName() + wxT("'"));
+         }
 
          t = iter.Next();
          ++index;
@@ -138,7 +154,12 @@ bool SelectCommand::Apply(CommandExecutionContext context)
          t->SetSelected(sel);
 
          if (sel)
+         {
+            if (!first)
+               first = t;
+            last = t;
             Status(wxT("Selected track '") + t->GetName() + wxT("'"));
+         }
 
          t = iter.Next();
       }
@@ -148,5 +169,31 @@ bool SelectCommand::Apply(CommandExecutionContext context)
       Error(wxT("Invalid selection mode!"));
       return false;
    }
+
+   if (focus != wxT("None"))
+   {
+      Track* t = nullptr;
+
+      if (focus == wxT("First"))
+      {
+         if (!first)
+            first = context.GetProject()->GetTracks()->front().get();
+         t = first;
+      }
+      else if (focus == wxT("Last"))
+      {
+         wxASSERT(first);
+
+         if (!last)
+            last = first;
+         if (!last)
+            last = context.GetProject()->GetTracks()->back().get();
+         t = last;
+      }
+
+      if (t)
+         context.GetProject()->GetTrackPanel()->SetFocusedTrack(t);
+   }
+
    return true;
 }

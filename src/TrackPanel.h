@@ -232,6 +232,10 @@ class AUDACITY_DLL_API TrackPanel final : public OverlayPanel {
    // (ignoring any fisheye)
    virtual double GetScreenEndTime() const;
 
+   virtual void ShowSpectrogramSettings(Track* track);
+
+   virtual void SetDisplay(Track* wt, int id, bool linear);
+
  protected:
    virtual MixerBoard* GetMixerBoard();
    /** @brief Populates the track pop-down menu with the common set of
@@ -242,6 +246,8 @@ class AUDACITY_DLL_API TrackPanel final : public OverlayPanel {
     * @param menu the menu to add the commands to.
     */
    virtual void BuildCommonDropMenuItems(wxMenu * menu);
+
+   virtual void BuildWaveDisplayMenuItems(wxMenu *menu);
 
    // left over from PRL's vertical ruler context menu experiment in 2.1.2
    // static void BuildVRulerMenuItems(wxMenu * menu, int firstId, const wxArrayString &names);

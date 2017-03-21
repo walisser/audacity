@@ -2238,7 +2238,9 @@ void TrackArtist::DrawClipSpectrum(WaveTrackCache &waveTrackCache,
    }
    else {
       // Update the spectrum pixel cache
-      clip->mSpecPxCache = std::make_unique<SpecPxCache>(hiddenMid.width * hiddenMid.height);
+      if (clip->mSpecPxCache->len < hiddenMid.height * hiddenMid.width)
+         clip->mSpecPxCache = std::make_unique<SpecPxCache>(hiddenMid.width * hiddenMid.height);
+
       clip->mSpecPxCache->valid = true;
       clip->mSpecPxCache->scaleType = scaleType;
       clip->mSpecPxCache->gain = gain;
@@ -2274,9 +2276,7 @@ void TrackArtist::DrawClipSpectrum(WaveTrackCache &waveTrackCache,
       ArrayOf<int> indexes{ maxTableSize };
 #endif //EXPERIMENTAL_FIND_NOTES
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
+_OPENMP_PRAGMA("omp parallel for schedule(static, 1)")
       for (int xx = 0; xx < hiddenMid.width; ++xx) {
 #ifdef EXPERIMENTAL_FIND_NOTES
          int maximas = 0;
@@ -2409,11 +2409,19 @@ void TrackArtist::DrawClipSpectrum(WaveTrackCache &waveTrackCache,
       ? 0
       : std::min(mid.width, (int)(zoomInfo.GetFisheyeRightBoundary(-leftOffset)));
    const size_t numPixels = std::max(0, end - begin);
-   const size_t zeroPaddingFactor = settings.ZeroPaddingFactor();
-   SpecCache specCache
-      (numPixels, settings.algorithm, -1,
-       t0, settings.windowType,
-       settings.WindowSize(), zeroPaddingFactor, settings.frequencyGain);
+
+//   const size_t zeroPaddingFactor = settings.ZeroPaddingFactor();
+//   SpecCache specCache
+//      (numPixels, settings.algorithm, -1,
+//       t0, settings.windowType,
+//       settings.WindowSize(), zeroPaddingFactor, settings.frequencyGain);
+
+   SpecCache specCache;
+
+   // note: must resize since where[] is accessed directly before Populate..
+   // but populate is just going to overwrite that anyways?
+   specCache.Resize(numPixels, settings, 0, t0);
+
    if (numPixels > 0) {
       for (int ii = begin; ii < end; ++ii) {
          const double time = zoomInfo.PositionToTime(ii, -leftOffset) - tOffset;
@@ -2435,9 +2443,7 @@ void TrackArtist::DrawClipSpectrum(WaveTrackCache &waveTrackCache,
    // left pixel column of the fisheye
    int fisheyeLeft = zoomInfo.GetFisheyeLeftBoundary(-leftOffset);
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
+_OPENMP_PRAGMA("pragma omp parallel for schedule(static, 1)")
    for (int xx = 0; xx < mid.width; ++xx) {
 
       int correctedX = xx + leftOffset - hiddenLeftOffset;

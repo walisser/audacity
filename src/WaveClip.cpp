@@ -45,12 +45,6 @@
 
 #ifdef _OPENMP
 #include <omp.h>
-#else
-// Comment this out if you want to profile non OpenMP builds too.
-#undef BEGIN_TASK_PROFILING
-#undef END_TASK_PROFILING
-#define BEGIN_TASK_PROFILING(TASK_DESCRIPTION) 
-#define END_TASK_PROFILING(TASK_DESCRIPTION) 
 #endif
 
 class WaveCache {
@@ -817,10 +811,35 @@ bool SpecCache::Matches
       algorithm == settings.algorithm;
 }
 
+void SpecCache::Resize(size_t len_, const SpectrogramSettings& settings,
+                       double pixelsPerSecond, double start_)
+{
+   // len columns, and so many rows, column-major.
+   // Don't take column literally -- this isn't pixel data yet, it's the
+   // raw data to be mapped onto the display.
+   size_t freqLen = len_* settings.GetFFTLength() / 2;
+
+   if (freqLen > freq.size())
+      freq.resize(freqLen);
+
+   // Sample counts corresponding to the columns, and to one past the end.
+   if ( (len_+1) > where.size())
+      where.resize(len_+1);
+
+   len = len_;
+   algorithm = settings.algorithm;
+   pps = pixelsPerSecond;
+   start_ = start_;
+   windowType = settings.windowType;
+   windowSize = settings.WindowSize();
+   zeroPaddingFactor = settings.ZeroPaddingFactor();
+   frequencyGain = settings.frequencyGain;
+}
+
 bool SpecCache::CalculateOneSpectrum
    (const SpectrogramSettings &settings,
     WaveTrackCache &waveTrackCache,
-    int xx, sampleCount numSamples,
+    const int xx, const sampleCount numSamples,
     double offset, double rate, double pixelsPerSecond,
     int lowerBoundX, int upperBoundX,
     const std::vector<float> &gainFactors,
@@ -927,14 +946,16 @@ bool SpecCache::CalculateOneSpectrum
          static const double epsilon = 1e-16;
          const auto hFFT = settings.hFFT.get();
 
-         float *const scratch2 = scratch + fftLen;
+#if 0
+         float * const scratch2 = scratch + fftLen;
          std::copy(scratch, scratch2, scratch2);
 
-         float *const scratch3 = scratch + 2 * fftLen;
+         float * const scratch3 = scratch + 2 * fftLen;
          std::copy(scratch, scratch2, scratch3);
 
          {
             const float *const window = settings.window.get();
+
             for (size_t ii = 0; ii < fftLen; ++ii)
                scratch[ii] *= window[ii];
             RealFFTf(scratch, hFFT);
@@ -943,17 +964,39 @@ bool SpecCache::CalculateOneSpectrum
          {
             const float *const dWindow = settings.dWindow.get();
             for (size_t ii = 0; ii < fftLen; ++ii)
-               scratch2[ii] *= dWindow[ii];
+               scratch2[ii] = scratch[ii]*dWindow[ii];
             RealFFTf(scratch2, hFFT);
          }
 
          {
             const float *const tWindow = settings.tWindow.get();
             for (size_t ii = 0; ii < fftLen; ++ii)
-               scratch3[ii] *= tWindow[ii];
+               scratch3[ii] = scratch[ii]*tWindow[ii];
             RealFFTf(scratch3, hFFT);
          }
+#else
+         float * const scratch2 = scratch + fftLen;
+         float * const scratch3 = scratch + 2 * fftLen;
 
+         {
+            const float * const window  = settings.window.get();
+            const float * const dWindow = settings.dWindow.get();
+            const float * const tWindow = settings.tWindow.get();
+
+            // for some reason when I try to reverse this loop I get a crash
+            for (size_t ii = 0; ii < fftLen; ++ii)
+            {
+               float v = scratch[ii];
+               scratch[ii]  = v * window[ii];
+               scratch2[ii] = v * dWindow[ii];
+               scratch3[ii] = v * tWindow[ii];
+            }
+
+            RealFFTf(scratch, hFFT);
+            RealFFTf(scratch2, hFFT);
+            RealFFTf(scratch3, hFFT);
+         }
+#endif
          for (size_t ii = 0; ii < hFFT->Points; ++ii) {
             const int index = hFFT->BitReversed[ii];
             const float
@@ -1002,10 +1045,11 @@ bool SpecCache::CalculateOneSpectrum
 
                   // This is non-negative, because bin and correctedX are
                   auto ind = (int)nBins * correctedX + bin;
-#ifdef _OPENMP
+
                   // This assignment can race if index reaches into another thread's bins.
                   // The probability of a race very low, so this carries little overhead,
                   // about 5% slower vs allowing it to race.
+#ifdef _OPENMP
                   #pragma omp atomic update
 #endif
                   out[ind] += power;
@@ -1031,6 +1075,17 @@ bool SpecCache::CalculateOneSpectrum
             for (size_t ii = 0; ii < nBins; ++ii)
                results[ii] += gainFactors[ii];
          }
+
+         // visualize how the work is divided across threads
+#ifdef _OPENMP
+         if (0) {
+            int id = omp_get_thread_num();
+            int num = omp_get_num_threads();
+            float step=60.0/num;
+            for (size_t ii = 0; ii < nBins; ++ii)
+               results[ii] -= step*id;
+         }
+#endif
       }
    }
 
@@ -1086,6 +1141,20 @@ void SpecCache::Populate
       const int lowerBoundX = jj == 0 ? 0 : copyEnd;
       const int upperBoundX = jj == 0 ? copyBegin : numPixels;
 
+      auto exLower=lowerBoundX, exUpper = upperBoundX;
+
+      if (reassignment)
+      {
+         // Need to look beyond the edges of the range to accumulate more
+         // time reassignments.
+         // I'm not sure what's a good stopping criterion?
+         const double pixelsPerSample = pixelsPerSecond / rate;
+         const int limit = std::min((int)(0.5 + fftLen * pixelsPerSample), 100);
+
+         exLower -= limit;
+         exUpper += limit;
+      }
+
 #ifdef _OPENMP
       // Storage for mutable per-thread data.
       // private clause ensures one copy per thread
@@ -1093,7 +1162,7 @@ void SpecCache::Populate
          ThreadLocalStorage()  { }
          ~ThreadLocalStorage() { }
 
-         void init(WaveTrackCache &waveTrackCache, size_t scratchSize) {
+         void init(const WaveTrackCache &waveTrackCache, size_t scratchSize) {
             if (!cache) {
                cache = std::make_unique<WaveTrackCache>(waveTrackCache.GetTrack());
                scratch.resize(scratchSize);
@@ -1103,9 +1172,9 @@ void SpecCache::Populate
          std::vector<float> scratch;
       } tls;
 
-      #pragma omp parallel for private(tls)
+      #pragma omp parallel for private(tls) schedule(static)
 #endif
-      for (auto xx = lowerBoundX; xx < upperBoundX; ++xx)
+      for (auto xx = exLower; xx < exUpper; ++xx)
       {
 #ifdef _OPENMP
          tls.init(waveTrackCache, scratchSize);
@@ -1123,6 +1192,8 @@ void SpecCache::Populate
       }
 
       if (reassignment) {
+
+         /*
          // Need to look beyond the edges of the range to accumulate more
          // time reassignments.
          // I'm not sure what's a good stopping criterion?
@@ -1153,6 +1224,7 @@ void SpecCache::Populate
             if (!result)
                break;
          }
+         */
 
          // Now Convert to dB terms.  Do this only after accumulating
          // power values, which may cross columns with the time correction.
@@ -1185,8 +1257,6 @@ bool WaveClip::GetSpectrogram(WaveTrackCache &waveTrackCache,
                               size_t numPixels,
                               double t0, double pixelsPerSecond) const
 {
-   BEGIN_TASK_PROFILING("GetSpectrogram");
-
    const WaveTrack *const track = waveTrackCache.GetTrack();
    const SpectrogramSettings &settings = track->GetSpectrogramSettings();
    const int &frequencyGain = settings.frequencyGain;
@@ -1210,17 +1280,8 @@ bool WaveClip::GetSpectrogram(WaveTrackCache &waveTrackCache,
       spectrogram = &mSpecCache->freq[0];
       where = &mSpecCache->where[0];
 
-      END_TASK_PROFILING("GetSpectrogram");
-
-      return false;  //hit cache completely
+      return false;  // hit cache completely
    }
-
-   if (settings.algorithm == SpectrogramSettings::algReassignment)
-      // Caching is not implemented for reassignment, unless for
-      // a complete hit, because of the complications of time reassignment
-      match = false;
-
-   std::unique_ptr<SpecCache> oldCache(std::move(mSpecCache));
 
    const double tstep = 1.0 / pixelsPerSecond;
    const double samplesPerPixel = mRate * tstep;
@@ -1230,7 +1291,7 @@ bool WaveClip::GetSpectrogram(WaveTrackCache &waveTrackCache,
 
    int copyBegin = 0, copyEnd = 0;
    if (match) {
-      findCorrection(oldCache->where, oldCache->len, numPixels,
+      findCorrection(mSpecCache->where, mSpecCache->len, numPixels,
          t0, mRate, samplesPerPixel,
          oldX0, correction);
       // Remember our first pixel maps to oldX0 in the old cache,
@@ -1238,48 +1299,48 @@ bool WaveClip::GetSpectrogram(WaveTrackCache &waveTrackCache,
       // For what range of pixels can data be copied?
       copyBegin = std::min((int)numPixels, std::max(0, -oldX0));
       copyEnd = std::min((int)numPixels, std::max(0,
-         (int)oldCache->len - oldX0
+         (int)mSpecCache->len - oldX0
       ));
    }
 
-   if (!(copyEnd > copyBegin))
-      oldCache.reset(0);
+   auto nBins = settings.NBins();
 
-   mSpecCache = std::make_unique<SpecCache>(
-      numPixels, settings.algorithm, pixelsPerSecond, t0,
-      windowType, windowSize, zeroPaddingFactor, frequencyGain);
+   // Resize the cache, keep the contents unchanged
+   mSpecCache->Resize(numPixels, settings, pixelsPerSecond, t0);
+
+   // Optimization: if the old cache is good and overlaps
+   // with the current one, re-use as much of the cache as
+   // possible
+   if (copyEnd > copyBegin)
+   {
+      // memmove is required since dst/src overlap
+      memmove(&mSpecCache->freq[nBins * copyBegin],
+            &mSpecCache->freq[nBins * (copyBegin + oldX0)],
+            nBins * (copyEnd - copyBegin) * sizeof(float));
+   }
+
+   // Reassignment accumulates, so it needs a zeroed buffer
+   if (settings.algorithm == SpectrogramSettings::algReassignment)
+   {
+      int zeroBegin = copyBegin > 0 ? 0 : copyEnd-copyBegin;
+      int zeroEnd = copyBegin > 0 ? copyBegin : numPixels;
+
+      memset(&mSpecCache->freq[nBins*zeroBegin], 0, nBins*(zeroEnd-zeroBegin)*sizeof(float));
+   }
 
    // purposely offset the display 1/2 sample to the left (as compared
    // to waveform display) to properly center response of the FFT
    fillWhere(mSpecCache->where, numPixels, 0.5, correction,
       t0, mRate, samplesPerPixel);
 
-   // Optimization: if the old cache is good and overlaps
-   // with the current one, re-use as much of the cache as
-   // possible
-   if (oldCache) {
-      mSpecCache->Allocate(settings);
-      auto nBins = settings.NBins();
-      memcpy(&mSpecCache->freq[nBins * copyBegin],
-         &oldCache->freq[nBins * (copyBegin + oldX0)],
-         nBins * (copyEnd - copyBegin) * sizeof(float));
-   }
-
-   BEGIN_TASK_PROFILING("Populate");
-
-   auto nBins = settings.NBins();
    mSpecCache->Populate
       (settings, waveTrackCache, copyBegin, copyEnd, numPixels,
        mSequence->GetNumSamples(),
        mOffset, mRate, pixelsPerSecond);
 
-   END_TASK_PROFILING("Populate");
-
    mSpecCache->dirty = mDirty;
    spectrogram = &mSpecCache->freq[0];
    where = &mSpecCache->where[0];
-
-   END_TASK_PROFILING("GetSpectrogram");
 
    return true;
 }

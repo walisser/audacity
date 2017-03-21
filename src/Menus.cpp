@@ -1220,7 +1220,14 @@ void AudacityProject::CreateMenusAndCommands()
    c->AddCommand(wxT("TrackMoveTop"), _("Move focused track to top"), FN(OnTrackMoveTop));
    c->AddCommand(wxT("TrackMoveBottom"), _("Move focused track to bottom"), FN(OnTrackMoveBottom));
 
+   c->AddCommand(wxT("TrackShowWave"), _("Show Waveform"), FN(OnTrackShowWave));
+   c->AddCommand(wxT("TrackShowWaveDB"), _("Show Waveform (dB)"), FN(OnTrackShowWaveDB));
+   c->AddCommand(wxT("TrackShowSpectrogram"), _("Show Spectrogram"), FN(OnTrackShowSpectrogram));
+   c->AddCommand(wxT("TrackShowSpectrogramSettings"), _("Open Spectrogram Settings"), FN(OnTrackShowSpectrogramSettings));
+
    c->SetDefaultFlags(AlwaysEnabledFlag, AlwaysEnabledFlag);
+
+   c->AddCommand(wxT("CloseNoSave"), _("Close project, discarding any changes"), FN(OnCloseNoSave));
 
    c->AddCommand(wxT("SnapToOff"), _("Snap To Off"), FN(OnSnapToOff));
    c->AddCommand(wxT("SnapToNearest"), _("Snap To Nearest"), FN(OnSnapToNearest));
@@ -3250,6 +3257,23 @@ void AudacityProject::OnTrackMoveBottom()
    }
 }
 
+void AudacityProject::HandleTrackDisplay(int mode, bool linear)
+{
+   Track *const focusedTrack = mTrackPanel->GetFocusedTrack();
+   if (focusedTrack)
+      mTrackPanel->SetDisplay(focusedTrack, mode, linear);
+}
+
+void AudacityProject::OnTrackShowWave() { HandleTrackDisplay(WaveTrack::Waveform, true); }
+void AudacityProject::OnTrackShowWaveDB() { HandleTrackDisplay(WaveTrack::Waveform, false); }
+void AudacityProject::OnTrackShowSpectrogram() { HandleTrackDisplay(WaveTrack::Spectrum, false); }
+void AudacityProject::OnTrackShowSpectrogramSettings()
+{
+   Track *const focusedTrack = mTrackPanel->GetFocusedTrack();
+   if (focusedTrack)
+      mTrackPanel->ShowSpectrogramSettings(focusedTrack);
+}
+
 /// Move a track up, down, to top or to bottom.
 
 void AudacityProject::MoveTrack(Track* target, MoveChoice choice)
@@ -3716,6 +3740,13 @@ void AudacityProject::OnOpen()
 void AudacityProject::OnClose()
 {
    mMenuClose = true;
+   Close();
+}
+
+void AudacityProject::OnCloseNoSave()
+{
+   mMenuClose = true;
+   GetUndoManager()->StateSaved();
    Close();
 }
 

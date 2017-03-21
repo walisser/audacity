@@ -644,10 +644,14 @@ public:
    }
 
 private:
+   // casting from char* breaks aliasing rules. Do not
+   // use "storage" member directly!
+WARNING_PUSH_STRICT_ALIASING
    X* address()
    {
       return reinterpret_cast<X*>(&storage);
    }
+WARNING_POP
 
    // Data
 #if 0

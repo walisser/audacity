@@ -191,4 +191,36 @@ void QuitAudacity();
 // pointer like std::unique_ptr or std::shared_ptr.
 #define safenew new
 
+
+
+// macros to disable warnings: fixme: clang & msvc versions
+#if defined(__GNUC__) && !defined(__APPLE__) && !defined(__clang__)
+
+   #define WARNING_PUSH \
+      _Pragma("GCC diagnostic push")
+
+   #define WARNING_STRICT_ALIASING \
+      _Pragma("GCC diagnostic ignored \"-Wstrict-aliasing\"")
+
+   #define WARNING_PUSH_STRICT_ALIASING \
+      WARNING_PUSH \
+      WARNING_STRICT_ALIASING
+
+   #define WARNING_POP \
+      _Pragma("GCC diagnostic pop")
+#else
+   #define WARNING_PUSH
+   #define WARNING_STRICT_ALIASING
+   #define WARNING_PUSH_STRICT_ALIASING
+   #define WARNING_POP
+#endif
+
+// #pragma omp macro, prevents "unknown pragma" warnings when inactive
+#ifdef _OPENMP
+#define _OPENMP_PRAGMA(x) _Pragma(x)
+#else
+#define _OPENMP_PRAGMA(x)
+#endif
+
+
 #endif // __AUDACITY_H__

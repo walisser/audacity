@@ -3270,7 +3270,9 @@ bool VSTEffect::LoadFXProgram(unsigned char **bptr, ssize_t & len, int index, bo
       for (int i = 0; i < numParams; i++)
       {
          uint32_t ival = wxUINT32_SWAP_ON_LE(iptr[14 + i]);
+WARNING_PUSH_STRICT_ALIASING
          float val = *((float *) &ival);
+WARNING_POP
          if (val < 0.0 || val > 1.0)
          {
             return false;
@@ -3291,7 +3293,9 @@ bool VSTEffect::LoadFXProgram(unsigned char **bptr, ssize_t & len, int index, bo
          for (int i = 0; i < numParams; i++)
          {
             wxUint32 val = wxUINT32_SWAP_ON_LE(iptr[14 + i]);
+WARNING_PUSH_STRICT_ALIASING
             callSetParameter(i, *((float *) &val));
+WARNING_POP
          }
          callDispatcher(effEndSetProgram, 0, 0, NULL, 0.0);
       }
@@ -3550,7 +3554,9 @@ void VSTEffect::SaveFXProgram(wxMemoryBuffer & buf, int index)
       for (int i = 0; i < mAEffect->numParams; i++)
       {
          float val = callGetParameter(i);
+WARNING_PUSH_STRICT_ALIASING
          wxUint32 ival = wxUINT32_SWAP_ON_LE(*((wxUint32 *) &val));
+WARNING_POP
          buf.AppendData(&ival, sizeof(ival));
       }
    }

@@ -204,7 +204,9 @@ WaveTrack::WaveTrackDisplay WaveTrack::FindDefaultViewMode()
    // Prefer the NEW preference key if it is present
 
    WaveTrack::WaveTrackDisplay viewMode;
-   gPrefs->Read(wxT("/GUI/DefaultViewModeNew"), (int*)&viewMode, -1);
+   int tmp = viewMode;
+   gPrefs->Read(wxT("/GUI/DefaultViewModeNew"), (int*)&tmp, -1);
+   viewMode = (WaveTrack::WaveTrackDisplay)tmp;
 
    // Default to the old key only if not, default the value if it's not there either
    wxASSERT(WaveTrack::MinDisplay >= 0);

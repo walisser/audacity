@@ -357,6 +357,7 @@ ToolDock::ToolDock( ToolManager *manager, wxWindow *parent, int dockid ):
    mManager = manager;
    memset(mBars, 0, sizeof(mBars)); // otherwise uninitialized
 
+   memset(mBars, 0, sizeof(mBars)); // uninitialized pointers?!
    // Use for testing gaps
    // SetOwnBackgroundColour( wxColour( 255, 0, 0 ) );
 }

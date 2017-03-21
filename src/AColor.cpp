@@ -635,7 +635,7 @@ void AColor::PreComputeGradient() {
                   } else {
                      const int gsteps = 4;
                      float gradient[gsteps + 1][3] = {
-                        {float(0.75), float(0.75), float(0.75)},    // lt gray
+                        {float(0.1), float(0.1), float(0.1)},    // lt gray
                         {float(0.30), float(0.60), float(1.00)},    // lt blue
                         {float(0.90), float(0.10), float(0.90)},    // violet
                         {float(1.00), float(0.00), float(0.00)},    // red

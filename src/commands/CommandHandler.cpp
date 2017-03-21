@@ -49,6 +49,11 @@ void CommandHandler::OnReceiveCommand(AppCommandEvent &event)
    // being opened, the old one closed and still trying to act
    // on the old one.
    SetProject( GetActiveProject() );
+
+   // Make the project window the front window, otherwise some
+   // commands will not work
+   mCurrentContext->GetProject()->Raise();
+
    // Then apply it to current application & project.  Note that the
    // command may change the context - for example, switching to a
    // different project.

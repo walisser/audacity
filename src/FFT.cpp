@@ -230,6 +230,7 @@ void RealFFT(size_t NumSamples, const float *RealIn, float *RealOut, float *Imag
 {
    auto hFFT = GetFFT(NumSamples);
    Floats pFFT{ NumSamples };
+
    // Copy the data into the processing buffer
    for(size_t i = 0; i < NumSamples; i++)
       pFFT[i] = RealIn[i];

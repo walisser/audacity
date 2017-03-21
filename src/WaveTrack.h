@@ -354,8 +354,12 @@ class AUDACITY_DLL_API WaveTrack final : public Track {
    // Get access to the (visible) clips in the tracks, in unspecified order
    // (not necessarioy sequenced in time).
    WaveClipHolders &GetClips() { return mClips; }
+
+   /// Breaks alias rule, to be safe avoid both forms in the same context
+   WARNING_PUSH_STRICT_ALIASING
    const WaveClipConstHolders &GetClips() const
       { return reinterpret_cast< const WaveClipConstHolders& >( mClips ); }
+   WARNING_POP
 
    // Get access to all clips (in some unspecified sequence),
    // including those hidden in cutlines.

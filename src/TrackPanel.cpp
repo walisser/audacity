@@ -441,6 +441,8 @@ TrackPanel::TrackPanel(wxWindow * parent, wxWindowID id,
    SetName(_("Track Panel"));
    SetBackgroundStyle(wxBG_STYLE_PAINT);
 
+   printf("TrackPanel:construct this=%p\n", this);
+
    {
       auto pAx = std::make_unique <TrackPanelAx>( this );
 #if wxUSE_ACCESSIBILITY
@@ -616,11 +618,7 @@ void TrackPanel::BuildMenus(void)
    /* build the pop-down menu used on wave (sampled audio) tracks */
    mWaveTrackMenu = std::make_unique<wxMenu>();
    BuildCommonDropMenuItems(mWaveTrackMenu.get());   // does name, up/down etc
-   mWaveTrackMenu->AppendRadioItem(OnWaveformID, _("Wa&veform"));
-   mWaveTrackMenu->AppendRadioItem(OnWaveformDBID, _("&Waveform (dB)"));
-   mWaveTrackMenu->AppendRadioItem(OnSpectrumID, _("&Spectrogram"));
-   mWaveTrackMenu->Append(OnSpectrogramSettingsID, _("S&pectrogram Settings..."));
-   mWaveTrackMenu->AppendSeparator();
+   BuildWaveDisplayMenuItems(mWaveTrackMenu.get());  // waveform, spectrogram
 
    // include both mono and stereo items as a work around for bug 1250
 
@@ -689,6 +687,18 @@ void TrackPanel::BuildCommonDropMenuItems(wxMenu * menu)
                            (GetProject()->GetCommandManager()->GetKeyFromName(wxT("TrackMoveBottom"))));
    menu->AppendSeparator();
 
+}
+
+void TrackPanel::BuildWaveDisplayMenuItems(wxMenu *menu)
+{
+   /* build the pop-down menu used on wave (sampled audio) tracks */
+   auto mgr = GetProject()->GetCommandManager();
+
+   mWaveTrackMenu->AppendRadioItem(OnWaveformID, _("Wa&veform") + wxT("\t") + mgr->GetKeyFromName(wxT("TrackShowWave")));
+   mWaveTrackMenu->AppendRadioItem(OnWaveformDBID, _("&Waveform (dB)") + wxT("\t") + mgr->GetKeyFromName(wxT("TrackShowWaveDB")));
+   mWaveTrackMenu->AppendRadioItem(OnSpectrumID, _("&Spectrogram") + wxT("\t") + mgr->GetKeyFromName(wxT("TrackShowSpectrogram")));
+   mWaveTrackMenu->Append(OnSpectrogramSettingsID, _("S&pectrogram Settings...") + wxT("\t") + mgr->GetKeyFromName(wxT("TrackShowSpectrogramSettings")));
+   mWaveTrackMenu->AppendSeparator();
 }
 
 /*
@@ -918,7 +928,6 @@ void TrackPanel::OnIdle(wxIdleEvent& event)
    else
    {
       // Get another idle event, wx only guarantees we get one
-      // event after "some other normal events occur"
       event.RequestMore();
    }
 }
@@ -926,6 +935,28 @@ void TrackPanel::OnIdle(wxIdleEvent& event)
 /// AS: This gets called on our wx timer events.
 void TrackPanel::OnTimer(wxTimerEvent& )
 {
+#if DEBUG_DRAW_TIMING
+   static int called=0;
+   static wxStopWatch sw;
+#endif
+
+#if 0
+   static wxStopWatch t;
+   mTimer.Stop();
+
+   long nextInterval = kTimerInterval;
+
+   {
+      long delta = t.Time() - kTimerInterval;
+      t.Start();
+
+      if (delta > 1)
+         nextInterval = 0;
+   }
+
+   mTimer.StartOnce(nextInterval);
+#endif
+
 #ifdef __WXMAC__
    // Unfortunate part of fix for bug 1431
    // Without this, the toolbars hide only every other time that you press
@@ -1076,7 +1107,8 @@ void TrackPanel::OnPaint(wxPaintEvent & /* event */)
    mLastDrawnSelectedRegion = mViewInfo->selectedRegion;
 
 #if DEBUG_DRAW_TIMING
-   wxStopWatch sw;
+   static int called=0;
+   static wxStopWatch sw;
 #endif
 
    {
@@ -1115,9 +1147,14 @@ void TrackPanel::OnPaint(wxPaintEvent & /* event */)
    }
 
 #if DEBUG_DRAW_TIMING
-   sw.Pause();
-   wxLogDebug(wxT("Total: %ld milliseconds"), sw.Time());
-   wxPrintf(wxT("Total: %ld milliseconds\n"), sw.Time());
+   called++;
+   if (sw.Time() > 1000)
+   {
+      sw.Pause();
+      printf("paint: %.2f hz\n", called*1000.0/sw.Time());
+      sw.Start();
+      called =0;
+   }
 #endif
 }
 
@@ -8193,16 +8230,22 @@ private:
 
 void TrackPanel::OnSpectrogramSettings(wxCommandEvent &)
 {
+   ShowSpectrogramSettings(mPopupMenuTarget);
+}
+
+void TrackPanel::ShowSpectrogramSettings(Track* track)
+{
+   wxASSERT(track && track->GetKind() == Track::Wave)
 
    if (gAudioIO->IsBusy()){
       wxMessageBox(_("To change Spectrogram Settings, stop any\n."
-         "playing or recording first."), 
+         "playing or recording first."),
          _("Stop the Audio First"), wxOK | wxICON_EXCLAMATION | wxCENTRE);
       return;
    }
+
    // Get here only from the wave track menu
-   const auto wt = static_cast<WaveTrack*>(mPopupMenuTarget);
-   // WaveformPrefsFactory waveformFactory(wt);
+   const auto wt = static_cast<WaveTrack*>(track);
    SpectrumPrefsFactory spectrumFactory(wt);
 
    PrefsDialog::Factories factories;
@@ -8216,15 +8259,11 @@ void TrackPanel::OnSpectrogramSettings(wxCommandEvent &)
 
    if (0 != dialog.ShowModal()) {
       MakeParentModifyState(true);
-      // Redraw
       Refresh(false);
    }
 }
 
 ///  Set the Display mode based on the menu choice in the Track Menu.
-///  Note that gModes MUST BE IN THE SAME ORDER AS THE MENU CHOICES!!
-///  const wxChar *gModes[] = { wxT("waveform"), wxT("waveformDB"),
-///  wxT("spectrum"), wxT("pitch") };
 void TrackPanel::OnSetDisplay(wxCommandEvent & event)
 {
    int idInt = event.GetId();
@@ -8243,7 +8282,19 @@ void TrackPanel::OnSetDisplay(wxCommandEvent & event)
    case OnSpectrumID:
       id = WaveTrack::Spectrum; break;
    }
-   WaveTrack *wt = (WaveTrack *) mPopupMenuTarget;
+
+   SetDisplay(mPopupMenuTarget, id, linear);
+}
+
+/// Set the Display mode for a given track
+/// linear sets linear Waveform scale(false) or log scale(false)
+void TrackPanel::SetDisplay(Track* track, int id, bool linear)
+{
+   wxASSERT(id == WaveTrack::Waveform || id == WaveTrack::Spectrum);
+   wxASSERT(track && track->GetKind() == Track::Wave);
+
+   auto wt = static_cast<WaveTrack*>(track);
+
    const bool wrongType = wt->GetDisplay() != id;
    const bool wrongScale =
       (id == WaveTrack::Waveform &&

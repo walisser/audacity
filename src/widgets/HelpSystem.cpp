@@ -248,7 +248,7 @@ void HelpSystem::ShowHelpDialog(wxWindow *parent,
       // Use Built-in browser to suggest you use the remote url.
       wxString Text = HelpText( wxT("remotehelp") );
       Text.Replace( wxT("*URL*"), remoteURL );
-      ShowHtmlText( parent, _("Help on the Internet"), Text, false, bModal );
+      ShowHtmlText( parent, _("Help on the Internet"), Text, false, true );
    }
    else if( HelpMode == wxT("Local") )
    {

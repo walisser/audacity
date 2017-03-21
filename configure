@@ -22704,7 +22704,7 @@ $as_echo "$as_me: libwidgetextra library is NOT available in the local tree" >&6
    fi
 
 
-FFMPEG_ARGUMENT=local
+FFMPEG_ARGUMENT=system
 LIBFLAC_ARGUMENT=local
 
 

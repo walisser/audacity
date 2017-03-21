@@ -113,6 +113,12 @@ void OnTrackMoveDown();
 void OnTrackMoveTop();
 void OnTrackMoveBottom();
 
+void HandleTrackDisplay(int, bool linear);
+void OnTrackShowWave();
+void OnTrackShowWaveDB();
+void OnTrackShowSpectrogram();
+void OnTrackShowSpectrogramSettings();
+
 enum MoveChoice { OnMoveUpID, OnMoveDownID, OnMoveTopID, OnMoveBottomID };
 void MoveTrack(Track* target, MoveChoice choice);
 
@@ -202,6 +208,7 @@ void OnMacBringAllToFront();
 void OnNew();
 void OnOpen();
 void OnClose();
+void OnCloseNoSave();
 void OnSave();
 void OnSaveAs();
 #ifdef USE_LIBVORBIS

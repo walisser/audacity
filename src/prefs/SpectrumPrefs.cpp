@@ -171,9 +171,13 @@ void SpectrumPrefs::PopulateOrExchange(ShuttleGui & S)
    {
       S.StartTwoColumn();
       {
+         wxCOMPILE_TIME_ASSERT2(sizeof(int)==sizeof(mTempSettings.scaleType), enum_not_int, enumCheck1);
+         // Cast breaks aliasing rule but safe in this context
+         WARNING_PUSH_STRICT_ALIASING
          S.Id(ID_SCALE).TieChoice(_("S&cale") + wxString(wxT(":")),
             *(int*)&mTempSettings.scaleType,
             &mScaleChoices);
+         WARNING_POP
 
          mMinFreq =
             S.Id(ID_MINIMUM).TieNumericTextBox(_("Mi&nimum Frequency (Hz):"),
@@ -220,10 +224,14 @@ void SpectrumPrefs::PopulateOrExchange(ShuttleGui & S)
    {
       S.StartMultiColumn(2);
       {
+         wxCOMPILE_TIME_ASSERT2(sizeof(int)==sizeof(mTempSettings.algorithm), enum_not_int, enumCheck1);
+         // Cast breaks aliasing rule but safe in this context
+         WARNING_PUSH_STRICT_ALIASING
          mAlgorithmChoice =
             S.Id(ID_ALGORITHM).TieChoice(_("A&lgorithm") + wxString(wxT(":")),
             *(int*)&mTempSettings.algorithm,
             &mAlgorithmChoices);
+         WARNING_POP
 
          S.Id(ID_WINDOW_SIZE).TieChoice(_("Window &size:"),
             mTempSettings.windowSize,
