@@ -57,10 +57,6 @@ public:
    bool Matches(int dirty_, double pixelsPerSecond,
       const SpectrogramSettings &settings, double rate) const;
 
-   // Resize the cache while preserving the (possibly now invalid!) contents
-   void Resize(size_t len_, const SpectrogramSettings& settings,
-               double pixelsPerSecond, double start_);
-
    // Calculate one column of the spectrum
    bool CalculateOneSpectrum
       (const SpectrogramSettings &settings,
@@ -72,7 +68,9 @@ public:
        float* __restrict scratch,
        float* __restrict out) const;
 
-   void Allocate(const SpectrogramSettings &settings);
+   // Resize the cache while preserving the (possibly now invalid!) contents
+   void Resize(size_t len_, const SpectrogramSettings& settings,
+               double pixelsPerSecond, double start_);
 
    // Calculate the dirty columns at the begin and end of the cache
    void Populate
@@ -81,17 +79,18 @@ public:
        sampleCount numSamples,
        double offset, double rate, double pixelsPerSecond);
 
-   size_t             len { 0 }; // counts pixels, not samples
-   int                algorithm;
-   double             pps;
-   double             start;
-   int                windowType;
-   size_t             windowSize { 0 };
-   unsigned           zeroPaddingFactor { 0 };
-   int                frequencyGain;
+   size_t       len { 0 }; // counts pixels, not samples
+   int          algorithm;
+   double       pps;
+   double       start;
+   int          windowType;
+   size_t       windowSize { 0 };
+   unsigned     zeroPaddingFactor { 0 };
+   int          frequencyGain;
    std::vector<float> freq;
    std::vector<sampleCount> where;
-   int                      dirty;
+
+   int          dirty;
 };
 
 class SpecPxCache {
@@ -300,13 +299,8 @@ public:
 
    /// Get access to cut lines list
    WaveClipHolders &GetCutLines() { return mCutLines; }
-
-   /// Breaks alias rule, to be safe avoid both forms in the same context
-   WARNING_PUSH_STRICT_ALIASING
    const WaveClipConstHolders &GetCutLines() const
       { return reinterpret_cast< const WaveClipConstHolders& >( mCutLines ); }
-   WARNING_POP
-
    size_t NumCutLines() const { return mCutLines.size(); }
 
    /** Find cut line at (approximately) this position. Returns true and fills
