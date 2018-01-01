@@ -19,23 +19,23 @@ got to show.
 
 *//********************************************************************/
 
-#include "Audacity.h"
+//#include "Audacity.h"
 #include "AudacityException.h"
 
-#include <wx/atomic.h>
-#include <wx/msgdlg.h>
+//#include <wx/atomic.h>
+//#include <wx/msgdlg.h>
 
 AudacityException::~AudacityException()
 {
 }
 
-wxAtomicInt sOutstandingMessages {};
+QAtomicInt sOutstandingMessages;
 
-MessageBoxException::MessageBoxException( const wxString &caption_ )
+MessageBoxException::MessageBoxException( const QString &caption_ )
    : caption{ caption_ }
 {
-   if (!caption.empty())
-      wxAtomicInc( sOutstandingMessages );
+   if (!caption.isEmpty())
+      sOutstandingMessages.ref();//--wxAtomicInc( sOutstandingMessages );
    else
       // invalidate me
       moved = true;
@@ -58,7 +58,7 @@ MessageBoxException &MessageBoxException::operator = ( MessageBoxException &&tha
    if ( this != &that ) {
       AudacityException::operator=( std::move(that) );
       if (!moved)
-         wxAtomicDec( sOutstandingMessages );
+         sOutstandingMessages.deref();//--wxAtomicDec( sOutstandingMessages );
 
       moved = that.moved;
       that.moved = true;
@@ -72,14 +72,14 @@ MessageBoxException::~MessageBoxException()
    if (!moved)
       // If exceptions are used properly, you should never reach this,
       // because moved should become true earlier in the object's lifetime.
-      wxAtomicDec( sOutstandingMessages );
+      sOutstandingMessages.deref();//--wxAtomicDec( sOutstandingMessages );
 }
 
 SimpleMessageBoxException::~SimpleMessageBoxException()
 {
 }
 
-wxString SimpleMessageBoxException::ErrorMessage() const
+QString SimpleMessageBoxException::ErrorMessage() const
 {
    return message;
 }
@@ -99,12 +99,19 @@ void MessageBoxException::DelayedHandlerAction()
       // displays its message.  We assume that multiple messages have a
       // common cause such as exhaustion of disk space so that the others
       // give the user no useful added information.
-      if ( wxAtomicDec( sOutstandingMessages ) == 0 )
-         ::wxMessageBox(
-            ErrorMessage(),
-            caption.IsEmpty() ? wxMessageBoxCaptionStr : caption,
-            wxICON_ERROR
-         );
+      //--if ( wxAtomicDec( sOutstandingMessages ) == 0 )
+      QString msg = QString("%1: %2").arg(caption).arg(ErrorMessage());
+      
+      if ( !sOutstandingMessages.deref() )
+         //::wxMessageBox(
+         //   ErrorMessage(),
+         //   caption.IsEmpty() ? wxMessageBoxCaptionStr : caption,
+         //   wxICON_ERROR
+         //);
+         qCritical("%s", qPrintable(msg));
+      else
+         qWarning("%s", qPrintable(msg));
+      
       moved = true;
    }
 }

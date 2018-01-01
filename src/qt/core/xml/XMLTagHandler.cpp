@@ -117,91 +117,63 @@ bool XMLValueChecker::IsGoodPathString(const QString &str)
             !str.isEmpty() &&
             (str.length() <= PLATFORM_MAX_PATH));
 } 
-
-bool XMLValueChecker::IsGoodInt(const QString & str)
+bool XMLValueChecker::IsGoodIntForRange(const QString & str, const QString & strMAXABS)
 {
    if (!IsGoodString(str))
       return false;
 
-   QByteArray strInt = str.toUtf8();
-   
    // Check that the value won't overflow.
-   // Signed long: -2,147,483,648 to +2,147,483,647, i.e., -2^31 to 2^31-1
-   // We're strict about disallowing spaces and commas, and requiring minus sign to be first char for negative.
-   const size_t lenMAXABS = strlen("2147483647");
-   const size_t lenStrInt = strInt.length();
+   // Must lie between -Range and +Range-1
+   // We're strict about disallowing spaces and commas, and requiring minus sign to be first 
+   // char for negative. No + sign for positive numbers.  It's disallowed, not optional.
 
-   if (lenStrInt > (lenMAXABS + 1))
-      return false;
-   else if ((lenStrInt == (lenMAXABS + 1)) && (strInt[0] == '-'))
-   {
-      const int digitsMAXABS[] = {2, 1, 4, 7, 4, 8, 3, 6, 4, 9};
-      unsigned int i;
-      for (i = 0; i < lenMAXABS; i++)
-         if (strInt[i+1] < '0' || strInt[i+1] > '9')
-            return false; // not a digit
+   const size_t lenMAXABS = strMAXABS.length();
+   const size_t lenStrInt = str.length();
 
-      for (i = 0; i < lenMAXABS; i++)
-         if (strInt[i+1] - '0' < digitsMAXABS[i])
-            return true; // number is small enough
+	const QByteArray bytes = str.toUtf8();
+   const char* strInt = bytes.data();
+	
+   if( lenStrInt < 1 )
       return false;
-   }
-   else if (lenStrInt == lenMAXABS)
-   {
-      const int digitsMAXABS[] = {2, 1, 4, 7, 4, 8, 3, 6, 4, 8};
-      unsigned int i;
-      for (i = 0; i < lenMAXABS; i++)
-         if (strInt[i] < '0' || strInt[i+1] > '9')
-            return false; // not a digit
-      for (i = 0; i < lenMAXABS; i++)
-         if (strInt[i] - '0' < digitsMAXABS[i])
-            return true; // number is small enough
+   int offset = (strInt[0] == '-') ?1:0;
+   if( (int)lenStrInt <= offset )
+      return false;// string too short, no digits in it.
+
+   if (lenStrInt > (lenMAXABS + offset))
       return false;
-   }
-   return true;
+
+   unsigned int i;
+   for (i = offset; i < lenStrInt; i++)
+      if (strInt[i] < '0' || strInt[i] > '9' )
+          return false; // not a digit
+
+   // All chars were digits.
+   if( (lenStrInt - offset) < lenMAXABS )
+      return true; // too few digits to overflow.
+
+   // Numerical part is same length as strMAXABS
+   for (i = 0; i < lenMAXABS; i++)
+      if (strInt[i+offset] < strMAXABS[i])
+         return true; // number is small enough
+      else if (strInt[i+offset] > strMAXABS[i])
+         return false; // number is too big.
+
+   // Digits were textually equal to strMAXABS
+   // That's OK if negative, but not OK if positive.
+   return (strInt[0] == '-');
 }
 
-bool XMLValueChecker::IsGoodInt64(const QString & str)
+
+bool XMLValueChecker::IsGoodInt(const QString & strInt)
 {
-   if (!IsGoodString(str))
-      return false;
+   // Signed long: -2,147,483,648 to +2,147,483,647, i.e., -2^31 to 2^31-1
+   return IsGoodIntForRange( strInt, "2147483648" );
+}
 
-   QByteArray strInt = str.toUtf8();
-      
-   // Check that the value won't overflow.
-   // Signed 64-bit: -9223372036854775808 to +9223372036854775807, i.e., -2^63 to 2^63-1
-   // We're strict about disallowing spaces and commas, and requiring minus sign to be first char for negative.
-   const size_t lenMAXABS = strlen("9223372036854775807");
-   const size_t lenStrInt = strInt.length();
-
-   if (lenStrInt > (lenMAXABS + 1))
-      return false;
-   else if ((lenStrInt == (lenMAXABS + 1)) && (strInt[0] == '-'))
-   {
-      const int digitsMAXABS[] = {9,2,2,3,3,7,2,0,3,6,8,5,4,7,7,5,8,0,9};
-      unsigned int i;
-      for (i = 0; i < lenMAXABS; i++)
-         if (strInt[i+1] < '0' || strInt[i+1] > '9')
-            return false; // not a digit
-
-      for (i = 0; i < lenMAXABS; i++)
-         if (strInt[i+1] - '0' < digitsMAXABS[i])
-            return true; // number is small enough
-      return false;
-   }
-   else if (lenStrInt == lenMAXABS)
-   {
-      const int digitsMAXABS[] = {9,2,2,3,3,7,2,0,3,6,8,5,4,7,7,5,8,0,8};
-      unsigned int i;
-      for (i = 0; i < lenMAXABS; i++)
-         if (strInt[i] < '0' || strInt[i+1] > '9')
-            return false; // not a digit
-      for (i = 0; i < lenMAXABS; i++)
-         if (strInt[i] - '0' < digitsMAXABS[i])
-            return true; // number is small enough
-      return false;
-   }
-   return true;
+bool XMLValueChecker::IsGoodInt64(const QString & strInt)
+{
+   // Signed 64-bit:  -9,223,372,036,854,775,808 to +9,223,372,036,854,775,807, i.e., -2^63 to 2^63-1
+   return IsGoodIntForRange( strInt, "9223372036854775808" );
 }
 
 bool XMLValueChecker::IsValidChannel(const int nValue)

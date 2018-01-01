@@ -31,8 +31,8 @@
 
 #include "Audacity.h"
 
-//#include <wx/config.h>
-//#include <wx/fileconf.h>
+//--#include <wx/config.h>
+//--#include <wx/fileconf.h>
 
 void InitPreferences();
 void FinishPreferences();

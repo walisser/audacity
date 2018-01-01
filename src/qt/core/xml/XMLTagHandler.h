@@ -59,6 +59,7 @@ public:
 	* @return true if the string is convertable, false if not
 	*/
    static bool IsGoodInt64(const QString & strInt);
+   static bool IsGoodIntForRange(const QString & strInt, const QString & strMAXABS);
 
    static bool IsValidChannel(const int nValue);
 #ifdef USE_MIDI

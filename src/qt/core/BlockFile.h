@@ -89,7 +89,7 @@ class PROFILE_DLL_API BlockFile /* not final, abstract */ {
    /// Stores a representation of this file in XML
    virtual void SaveXML(XMLWriter &xmlFile) = 0;
 
-   /**REMOVEME
+   /**--
    /// Gets the filename of the disk file associated with this BlockFile
    /// (can be empty -- some BlockFiles, like SilentBlockFile, correspond to
    ///  no file on disk)
@@ -112,7 +112,7 @@ class PROFILE_DLL_API BlockFile /* not final, abstract */ {
    };
    virtual GetFileNameResult GetFileName() const;
    virtual void SetFileName(wxFileNameWrapper &&name);
-   REMOVEME **/
+   --**/
    virtual QString GetFileName() const;
    virtual void SetFileName(const QString& name);
    

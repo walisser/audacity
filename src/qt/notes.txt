@@ -1,14 +1,17 @@
-
+TODO:
+put wxT() back in that were taken out, probably needed...
 
 annotations
 -----------
 
 PORTME - needs qt version
+
 TESTME - needs test; or cannot test due to PORTME issue
 FIXME  - found a bug; bug needs to be fixed
 TODO   - probably should do this; not a bug but a sore point
-//--   - commented out code for qt port
 
+//--   - commented out code for old implementation
+/**-- --**//
 
 translation
 -------------
@@ -44,14 +47,19 @@ wxT() -> remove
 
 wxFileName(path)::GetFullName => QFileInfo(path)::fileName()
 
-wxASSERT() -> Q_ASSERT or Q_ASSUME
+wxASSERT() -> Q_ASSERT or Q_ASSUME or Q_UNREACHABLE
 wxASSERT_MSG -> Q_ASSERT_X or Q_ASSUME_X
    Q_ASSUME iff code that follows would be incorrect otherwise??
-   
+   Q_UNREACHABLE if the assert is to guard unreachable code
 
 wxUINT32_SWAP_ALWAYS -> qbswap
 
-
 wxMessageBox -> qCritical()
    - make Audacity core free of any gui requirement
+
+misc
+--------------
+TRUE -> true
+FALSE -> false
+int -> bool
 

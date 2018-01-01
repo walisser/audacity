@@ -200,7 +200,7 @@ const float Dither::SHAPED_BS[] = { 2.033f, -2.165f, 1.959f, -1.590f, 0.6149f };
         DITHER_FLOAT_TO_INT16(dither, dst, dstStride, src, srcStride, len); \
     else if (srcFormat == floatSample && dstFormat == int24Sample) \
         DITHER_FLOAT_TO_INT24(dither, dst, dstStride, src, srcStride, len); \
-    else { qFatal("Unknown source format"); } \
+    else { Q_UNREACHABLE(); } \
     } while (0)
 
 
@@ -289,7 +289,7 @@ void Dither::Apply(enum DitherType ditherType,
                 for (i = 0; i < len; i++, d += destStride, s += sourceStride)
                     *d = *s;
             } else {
-                qFatal("Unknown source format"); // source format unknown
+                Q_UNREACHABLE(); // source format unknown
             }
         }
     } else
@@ -311,7 +311,7 @@ void Dither::Apply(enum DitherType ditherType,
             for (i = 0; i < len; i++, d += destStride, s += sourceStride)
                 *d = FROM_INT24(s);
         } else {
-            qFatal("Unknown source format"); // source format unknown
+            Q_UNREACHABLE(); // source format unknown
         }
     } else
     if (destFormat == int24Sample && sourceFormat == int16Sample)
@@ -341,7 +341,7 @@ void Dither::Apply(enum DitherType ditherType,
             DITHER(ShapedDither, dest, destFormat, destStride, source, sourceFormat, sourceStride, len);
             break;
         default:
-            qFatal("Unknown dither algorithm");//--(false); // unknown dither algorithm
+            Q_UNREACHABLE();//--(false); // unknown dither algorithm
         }
     }
 }

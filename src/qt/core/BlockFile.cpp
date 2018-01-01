@@ -278,7 +278,7 @@ void BlockFile::CalcSummaryFromBuffer(const float *fbuffer, size_t len,
       summary64K[i * 3 + 2] = rms;
    }
    for (auto i = sumLen; i < mSummaryInfo.frames64K; i++) {
-      Q_ASSERT_X(false, "CalcSummaryFromBuffer", "Out of data for mSummaryInfo");   // Do we ever get here?
+      Q_ASSERT_X(false, Q_FUNC_INFO, "Out of data for mSummaryInfo");   // Do we ever get here?
       summary64K[i * 3] = 0.0f;  // probably should be FLT_MAX, need a test case
       summary64K[i * 3 + 1] = 0.0f; // probably should be -FLT_MAX, need a test case
       summary64K[i * 3 + 2] = 0.0f; // just padding
