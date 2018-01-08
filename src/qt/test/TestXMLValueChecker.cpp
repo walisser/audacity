@@ -101,14 +101,37 @@ void testIsGoodPathName()
 
 void testIsGoodInt()
 {
+   QVERIFY(XMLValueChecker::IsGoodInt( "0" ));
    QVERIFY(XMLValueChecker::IsGoodInt( QString::number(INT_MAX) ));
    QVERIFY(XMLValueChecker::IsGoodInt( QString::number(INT_MIN) ));
    
-   QVERIFY(XMLValueChecker::IsGoodInt( "2147483647" ));
-   QVERIFY(XMLValueChecker::IsGoodInt( "-2147483648" ));
+   // add one to each position and test for overflow
+   // we can only do this because it so happens that no digit > 8
+   QString max = QString::number(INT_MAX);
+   for (int i = 0; i < max.length(); i++)
+   {
+      QByteArray over = max.toLatin1();
+      (over.data())[i]++;
+      QVERIFY2(!XMLValueChecker::IsGoodInt(over), over);
+   }
    
-   QVERIFY(!XMLValueChecker::IsGoodInt( "2147483648" ));
-   QVERIFY(!XMLValueChecker::IsGoodInt( "-2147483649" ));
+   QString min = QString::number(INT_MIN);
+   for (int i = 0; i < max.length(); i++)
+   {
+      QByteArray under = min.toLatin1();
+      (under.data())[i]++;
+      QVERIFY2(!XMLValueChecker::IsGoodInt(under), under);
+   }
+   
+   QVERIFY(!XMLValueChecker::IsGoodInt( "" ));
+   QVERIFY(!XMLValueChecker::IsGoodInt( "0a" ));
+   
+   QVERIFY(XMLValueChecker::IsGoodInt( "01" ));
+   QVERIFY(XMLValueChecker::IsGoodInt( "-01" ));
+   QVERIFY(XMLValueChecker::IsGoodInt( "-0" ));
+   
+   QVERIFY(!XMLValueChecker::IsGoodInt( "- 0" ));
+   QVERIFY(!XMLValueChecker::IsGoodInt( "- 1" ));
 }
 
 void testIsGoodInt64()

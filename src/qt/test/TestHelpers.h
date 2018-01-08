@@ -10,3 +10,46 @@
 #else
 #   error portme
 #endif
+
+#ifdef Q_OS_UNIX
+#include <sys/resource.h>
+#include <signal.h>
+
+// temporarily sets the maximum size in bytes of files that the process may create
+// return false if the limit isn't supported
+class FileSizeLimiter
+{
+public:
+   FileSizeLimiter()
+   {
+      Q_ASSERT( 0 == getrlimit(RLIMIT_FSIZE, &_limit) );
+   }
+   
+   bool apply(size_t bytes)
+   {
+      _limit.rlim_cur = bytes;
+      Q_ASSERT( 0 == setrlimit(RLIMIT_FSIZE, &_limit) );
+      
+      // prevent signal on low disk, and return error from system call
+      Q_ASSERT( SIG_ERR != signal(SIGXFSZ, SIG_IGN) );
+      
+      return true;
+   }
+  
+   // revert limits
+   ~FileSizeLimiter()
+   {
+      _limit.rlim_cur = _limit.rlim_max;
+      Q_ASSERT( 0 == setrlimit(RLIMIT_FSIZE, &_limit) );
+      Q_ASSERT( SIG_ERR != signal(SIGXFSZ, SIG_DFL) );
+   }
+private:
+   struct rlimit _limit;
+};
+#else
+class FileSizeLimiter
+{
+public:
+   bool apply(size_t bytes) { return false; }
+};
+#endif

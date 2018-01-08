@@ -20,7 +20,7 @@
 //#include <wx/utils.h>
 
 //#include "audacity/Types.h"
-//#include "xml/XMLTagHandler.h"
+#include "xml/XMLTagHandler.h"
 //#include "wxFileNameWrapper.h"
 
 class wxHashTable;

@@ -80,13 +80,15 @@ class PROFILE_DLL_API SimpleBlockFile /* not final */ : public BlockFile {
 
    static BlockFilePtr BuildFromXML(DirManager &dm, const QStringMap &attrs);
 
+#if DEPRECATED_AUDIO_CACHE
    bool GetNeedWriteCacheToDisk() override;
    void WriteCacheToDisk() override;
 
    bool GetNeedFillCache() override { return !mCache.active; }
 
    void FillCache() /* noexcept */ override;
-
+#endif
+   
  protected:
 
    bool WriteSimpleBlockFile(samplePtr sampleData, size_t sampleLen,

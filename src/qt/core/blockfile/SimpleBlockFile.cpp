@@ -57,8 +57,8 @@ to get its definition, rather than rolling our own.
 
 *//*******************************************************************/
 
-#include "Audacity.h"
-#include "SimpleBlockFile.h"
+#include "core/Audacity.h"
+#include "core/blockfile/SimpleBlockFile.h"
 
 //#include <wx/wx.h>
 //#include <wx/filefn.h>
@@ -66,19 +66,23 @@ to get its definition, rather than rolling our own.
 //#include <wx/utils.h>
 //#include <wx/log.h>
 
-#include "../FileException.h"
-#include "../Prefs.h"
+#include "core/FileException.h"
+#include "core/Prefs.h"
 
-#include "../FileFormats.h"
+#include "core/FileFormats.h"
 
 #include "sndfile.h"
-#include "../Internat.h"
-#include "../MemoryX.h"
+#include "core/Internat.h"
+#include "core/MemoryX.h"
 
+#include "core/xml/XMLWriter.h"
+#include "core/xml/XMLTagHandler.h"
+#include "core/DirManager.h"
 
-static wxUint32 SwapUintEndianess(wxUint32 in)
+/**--
+static uint32_t SwapUintEndianess(uint32_t in)
 {
-  wxUint32 out;
+  uint32_t out;
   unsigned char *p_in = (unsigned char *) &in;
   unsigned char *p_out = (unsigned char *) &out;
   p_out[0] = p_in[3];
@@ -87,6 +91,7 @@ static wxUint32 SwapUintEndianess(wxUint32 in)
   p_out[3] = p_in[0];
   return out;
 }
+--**/
 
 /// Constructs a SimpleBlockFile based on sample data and writes
 /// it to disk.
@@ -98,13 +103,15 @@ static wxUint32 SwapUintEndianess(wxUint32 in)
 /// @param sampleLen    The number of samples to be written to this block.
 /// @param format       The format of the given samples.
 /// @param allowDeferredWrite    Allow deferred write-caching
-SimpleBlockFile::SimpleBlockFile(wxFileNameWrapper &&baseFileName,
-                                 samplePtr sampleData, size_t sampleLen,
+SimpleBlockFile::SimpleBlockFile(const QString &baseFileName,
+                                 samplePtr sampleData,
+                                 size_t sampleLen,
                                  sampleFormat format,
                                  bool allowDeferredWrite /* = false */,
                                  bool bypassCache /* = false */):
    BlockFile {
-      (baseFileName.SetExt(wxT("au")), std::move(baseFileName)),
+      //--(baseFileName.SetExt(wxT("au")), std::move(baseFileName)),
+      baseFileName.endsWith(".au") ? baseFileName : baseFileName + ".au", 
       sampleLen
    }
 {
@@ -119,10 +126,11 @@ SimpleBlockFile::SimpleBlockFile(wxFileNameWrapper &&baseFileName,
       bool bSuccess = WriteSimpleBlockFile(sampleData, sampleLen, format, NULL);
       if (!bSuccess)
          throw FileException{
-            FileException::Cause::Write, GetFileName().name };
+             FileException::Cause::Write, GetFileName() };
    }
 
    if (useCache) {
+#ifdef DEPRECATED_AUDIO_CACHE
       //wxLogDebug("SimpleBlockFile::SimpleBlockFile(): Caching block file data.");
       mCache.active = true;
       mCache.needWrite = true;
@@ -136,6 +144,7 @@ SimpleBlockFile::SimpleBlockFile(wxFileNameWrapper &&baseFileName,
       mCache.summaryData.reinit(mSummaryInfo.totalSummaryBytes);
       memcpy(mCache.summaryData.get(), summaryData,
              mSummaryInfo.totalSummaryBytes);
+#endif
     }
 }
 
@@ -143,7 +152,7 @@ SimpleBlockFile::SimpleBlockFile(wxFileNameWrapper &&baseFileName,
 /// existing block file.  This file must exist and be a valid block file.
 ///
 /// @param existingFile The disk file this SimpleBlockFile should use.
-SimpleBlockFile::SimpleBlockFile(wxFileNameWrapper &&existingFile, size_t len,
+SimpleBlockFile::SimpleBlockFile(const QString &existingFile, size_t len,
                                  float min, float max, float rms):
    BlockFile{ std::move(existingFile), len }
 {
@@ -167,8 +176,11 @@ bool SimpleBlockFile::WriteSimpleBlockFile(
     sampleFormat format,
     void* summaryData)
 {
-   wxFFile file(mFileName.GetFullPath(), wxT("wb"));
-   if( !file.IsOpened() ){
+   //wxFFile file(mFileName.GetFullPath(), wxT("wb"));
+   QFile file(mFileName);
+   //if( !file.IsOpened() ){
+   if (!file.open(QFile::WriteOnly)) {
+      qWarning("Failed to open for writing: %s", qPrintable(mFileName));
       // Can't do anything else.
       return false;
    }
@@ -217,18 +229,18 @@ bool SimpleBlockFile::WriteSimpleBlockFile(
       // PRL: cleanup fixes a possible memory leak!
 
    size_t nBytesToWrite = sizeof(header);
-   size_t nBytesWritten = file.Write(&header, nBytesToWrite);
+   size_t nBytesWritten = file.write((const char*)&header, nBytesToWrite);
    if (nBytesWritten != nBytesToWrite)
    {
-      wxLogDebug(wxT("Wrote %lld bytes, expected %lld."), (long long) nBytesWritten, (long long) nBytesToWrite);
+      qWarning("Wrote %lld bytes, expected %lld.",(long long) nBytesWritten, (long long) nBytesToWrite);
       return false;
    }
 
    nBytesToWrite = mSummaryInfo.totalSummaryBytes;
-   nBytesWritten = file.Write(summaryData, nBytesToWrite);
+   nBytesWritten = file.write((const char*)summaryData, nBytesToWrite);
    if (nBytesWritten != nBytesToWrite)
    {
-      wxLogDebug(wxT("Wrote %lld bytes, expected %lld."), (long long) nBytesWritten, (long long) nBytesToWrite);
+      qWarning("Wrote %lld bytes, expected %lld.", (long long) nBytesWritten, (long long) nBytesToWrite);
       return false;
    }
 
@@ -243,14 +255,14 @@ bool SimpleBlockFile::WriteSimpleBlockFile(
       {
          nBytesToWrite = 3;
          nBytesWritten =
-            #if wxBYTE_ORDER == wxBIG_ENDIAN
-               file.Write((char*)&int24sampleData[i] + 1, nBytesToWrite);
+            #if Q_BYTE_ORDER == Q_BIG_ENDIAN
+               file.write((char*)&int24sampleData[i] + 1, nBytesToWrite);
             #else
-               file.Write((char*)&int24sampleData[i], nBytesToWrite);
+               file.write((char*)&int24sampleData[i], nBytesToWrite);
             #endif
          if (nBytesWritten != nBytesToWrite)
          {
-            wxLogDebug(wxT("Wrote %lld bytes, expected %lld."), (long long) nBytesWritten, (long long) nBytesToWrite);
+            qWarning("Wrote %lld bytes, expected %lld.", (long long) nBytesWritten, (long long) nBytesToWrite);
             return false;
          }
       }
@@ -260,10 +272,10 @@ bool SimpleBlockFile::WriteSimpleBlockFile(
       // for all other sample formats we can write straight from the buffer
       // to disk
       nBytesToWrite = sampleLen * SAMPLE_SIZE(format);
-      nBytesWritten = file.Write(sampleData, nBytesToWrite);
+      nBytesWritten = file.write((const char*)sampleData, nBytesToWrite);
       if (nBytesWritten != nBytesToWrite)
       {
-         wxLogDebug(wxT("Wrote %lld bytes, expected %lld."), (long long) nBytesWritten, (long long) nBytesToWrite);
+         qWarning("Wrote %lld bytes, expected %lld.", (long long) nBytesWritten, (long long) nBytesToWrite);
          return false;
       }
    }
@@ -271,6 +283,7 @@ bool SimpleBlockFile::WriteSimpleBlockFile(
    return true;
 }
 
+#ifdef DEPRECATED_AUDIO_CACHE
 // This function should try to fill the cache, but just return without effect
 // (not throwing) if there is failure.
 void SimpleBlockFile::FillCache()
@@ -279,27 +292,30 @@ void SimpleBlockFile::FillCache()
       return; // cache is already filled
 
    // Check sample format
-   wxFFile file(mFileName.GetFullPath(), wxT("rb"));
-   if (!file.IsOpened())
+   //wxFFile file(mFileName.GetFullPath(), wxT("rb"));
+   QFile file(mFileName);
+   if (!file.open(QFile::ReadOnly))
    {
       // Don't read into cache if file not available
+      qWarning("Failed to open for reading: %s", qPrintable(mFileName));
       return;
    }
 
    auHeader header;
 
-   if (file.Read(&header, sizeof(header)) != sizeof(header))
+   if (file.read((char*)&header, sizeof(header)) != sizeof(header))
    {
       // Corrupt file
+      qWarning("Corrupt file: %s", qPrintable(mFileName));
       return;
    }
 
-   wxUint32 encoding;
+   uint32_t encoding;
 
    if (header.magic == 0x2e736e64)
       encoding = header.encoding; // correct endianness
    else
-      encoding = SwapUintEndianess(header.encoding);
+      encoding = qbswap(header.encoding);
 
    switch (encoding)
    {
@@ -315,7 +331,7 @@ void SimpleBlockFile::FillCache()
       break;
    }
 
-   file.Close();
+   file.close();
 
    // Read samples into cache
    mCache.sampleData.reinit(mLen * SAMPLE_SIZE(mCache.format));
@@ -338,6 +354,7 @@ void SimpleBlockFile::FillCache()
 
    //wxLogDebug("SimpleBlockFile::FillCache(): Succesfully read simple block file into cache.");
 }
+#endif
 
 /// Read the summary section of the disk file.
 ///
@@ -346,35 +363,41 @@ void SimpleBlockFile::FillCache()
 bool SimpleBlockFile::ReadSummary(ArrayOf<char> &data)
 {
    data.reinit( mSummaryInfo.totalSummaryBytes );
+#ifdef DEPRECATED_AUDIO_CACHE
    if (mCache.active) {
       //wxLogDebug("SimpleBlockFile::ReadSummary(): Summary is already in cache.");
       memcpy(data.get(), mCache.summaryData.get(), mSummaryInfo.totalSummaryBytes);
       return true;
    }
    else
+#endif
    {
       //wxLogDebug("SimpleBlockFile::ReadSummary(): Reading summary from disk.");
 
-      wxFFile file(mFileName.GetFullPath(), wxT("rb"));
-
+      //wxFFile file(mFileName.GetFullPath(), wxT("rb"));
+      QFile file(mFileName);
+      
       {
-         Maybe<wxLogNull> silence{};
-         if (mSilentLog)
-            silence.create();
+         //Maybe<wxLogNull> silence{};
+         //if (mSilentLog)
+         //   silence.create();
          // FIXME: TRAP_ERR no report to user of absent summary files?
          // filled with zero instead.
-         if (!file.IsOpened()){
+         if (!file.open(QFile::ReadOnly)) { //IsOpened()){
+            
+            qWarning("ReadSummary failed to open %s", qPrintable(mFileName));
             memset(data.get(), 0, mSummaryInfo.totalSummaryBytes);
-            mSilentLog = TRUE;
+            //mSilentLog = TRUE;
             return false;
          }
       }
-      mSilentLog = FALSE;
+      //mSilentLog = FALSE;
 
       // The offset is just past the au header
-      if( !file.Seek(sizeof(auHeader)) ||
-          file.Read(data.get(), mSummaryInfo.totalSummaryBytes) !=
+      if( !file.seek(sizeof(auHeader)) ||
+          file.read(data.get(), mSummaryInfo.totalSummaryBytes) !=
              mSummaryInfo.totalSummaryBytes ) {
+         qWarning("ReadSummary failed to read %s", qPrintable(mFileName));
          memset(data.get(), 0, mSummaryInfo.totalSummaryBytes);
          return false;
       }
@@ -395,6 +418,7 @@ bool SimpleBlockFile::ReadSummary(ArrayOf<char> &data)
 size_t SimpleBlockFile::ReadData(samplePtr data, sampleFormat format,
                         size_t start, size_t len, bool mayThrow) const
 {
+#ifdef DEPRECATED_AUDIO_CACHE
    if (mCache.active)
    {
       //wxLogDebug("SimpleBlockFile::ReadData(): Data are already in cache.");
@@ -415,6 +439,7 @@ size_t SimpleBlockFile::ReadData(samplePtr data, sampleFormat format,
       return framesRead;
    }
    else
+#endif
       return CommonReadData( mayThrow,
          mFileName, mSilentLog, nullptr, 0, 0, data, format, start, len);
 }
@@ -422,57 +447,71 @@ size_t SimpleBlockFile::ReadData(samplePtr data, sampleFormat format,
 void SimpleBlockFile::SaveXML(XMLWriter &xmlFile)
 // may throw
 {
-   xmlFile.StartTag(wxT("simpleblockfile"));
+   xmlFile.StartTag("simpleblockfile");
 
-   xmlFile.WriteAttr(wxT("filename"), mFileName.GetFullName());
-   xmlFile.WriteAttr(wxT("len"), mLen);
-   xmlFile.WriteAttr(wxT("min"), mMin);
-   xmlFile.WriteAttr(wxT("max"), mMax);
-   xmlFile.WriteAttr(wxT("rms"), mRMS);
+   xmlFile.WriteAttr("filename", QFileInfo(mFileName).fileName());//mFileName.GetFullName());
+   xmlFile.WriteAttr("len", mLen);
+   xmlFile.WriteAttr("min", mMin);
+   xmlFile.WriteAttr("max", mMax);
+   xmlFile.WriteAttr("rms", mRMS);
 
-   xmlFile.EndTag(wxT("simpleblockfile"));
+   xmlFile.EndTag("simpleblockfile");
 }
 
 // BuildFromXML methods should always return a BlockFile, not NULL,
 // even if the result is flawed (e.g., refers to nonexistent file),
 // as testing will be done in DirManager::ProjectFSCK().
 /// static
-BlockFilePtr SimpleBlockFile::BuildFromXML(DirManager &dm, const wxChar **attrs)
+BlockFilePtr SimpleBlockFile::BuildFromXML(DirManager &dm, const QStringMap &attrs)
 {
-   wxFileNameWrapper fileName;
+   QString fileName;
    float min = 0.0f, max = 0.0f, rms = 0.0f;
    size_t len = 0;
    double dblValue;
-   long nValue;
+   //--long nValue;
 
-   while(*attrs)
-   {
-      const wxChar *attr =  *attrs++;
-      const wxChar *value = *attrs++;
-      if (!value)
-         break;
+   for (auto it=attrs.constBegin();
+        it != attrs.constEnd();
+        ++it)
+   {      
+   //--while(*attrs)
+   //--{
+      //--const wxChar *attr =  *attrs++;
+      //--const wxChar *value = *attrs++;
+      const QString &key = it.key();
+      const QString &value = it.value();
+      
+      //--if (!value)
+      //--   break;
 
-      const wxString strValue = value;
-      if (!wxStricmp(attr, wxT("filename")) &&
+      //--const wxString strValue = value;
+      if (key == "filename" &&
             // Can't use XMLValueChecker::IsGoodFileName here, but do part of its test.
-            XMLValueChecker::IsGoodFileString(strValue) &&
-            (strValue.Length() + 1 + dm.GetProjectDataDir().Length() <= PLATFORM_MAX_PATH))
+            XMLValueChecker::IsGoodFileString(value) &&
+            (value.length() + 1 + dm.GetProjectDataDir().length() <= PLATFORM_MAX_PATH))
       {
-         if (!dm.AssignFile(fileName, strValue, false))
+         if (!dm.AssignFile(fileName, value, false))
             // Make sure fileName is back to uninitialized state so we can detect problem later.
-            fileName.Clear();
+            fileName.clear();
       }
-      else if (!wxStrcmp(attr, wxT("len")) &&
-               XMLValueChecker::IsGoodInt(strValue) && strValue.ToLong(&nValue) &&
-               nValue > 0)
-         len = nValue;
-      else if (XMLValueChecker::IsGoodString(strValue) && Internat::CompatibleToDouble(strValue, &dblValue))
-      {  // double parameters
-         if (!wxStricmp(attr, wxT("min")))
+      else if (key == "len")
+      {
+         //--      XMLValueChecker::IsGoodInt(value) && value.toLong(&ok, &nValue) &&
+         //--      nValue > 0)
+         //--len = nValue;
+         bool ok = false;
+         long nValue = value.toLong(&ok);
+         if (ok && nValue > 0)
+            len = nValue;
+      }
+      else if (XMLValueChecker::IsGoodString(value) && Internat::CompatibleToDouble(value, &dblValue))
+      {  
+         // double parameters
+         if (key == "min")
             min = dblValue;
-         else if (!wxStricmp(attr, wxT("max")))
+         else if (key == "max")
             max = dblValue;
-         else if (!wxStricmp(attr, wxT("rms")) && (dblValue >= 0.0))
+         else if (key == "rms" && (dblValue >= 0.0))
             rms = dblValue;
       }
    }
@@ -484,7 +523,7 @@ BlockFilePtr SimpleBlockFile::BuildFromXML(DirManager &dm, const wxChar **attrs)
 /// Create a copy of this BlockFile, but using a different disk file.
 ///
 /// @param newFileName The name of the NEW file to use.
-BlockFilePtr SimpleBlockFile::Copy(wxFileNameWrapper &&newFileName)
+BlockFilePtr SimpleBlockFile::Copy(const QString &newFileName)
 {
    auto newBlockFile = make_blockfile<SimpleBlockFile>
       (std::move(newFileName), mLen, mMin, mMax, mRMS);
@@ -494,18 +533,21 @@ BlockFilePtr SimpleBlockFile::Copy(wxFileNameWrapper &&newFileName)
 
 auto SimpleBlockFile::GetSpaceUsage() const -> DiskByteCount
 {
+#ifdef DEPRECATED_AUDIO_CACHE
    if (mCache.active && mCache.needWrite)
    {
       // We don't know space usage yet
       return 0;
    }
+#endif
 
    // Don't know the format, so it must be read from the file
    if (mFormat == (sampleFormat) 0)
    {
       // Check sample format
-      wxFFile file(mFileName.GetFullPath(), wxT("rb"));
-      if (!file.IsOpened())
+      QFile file(mFileName);
+      //--wxFFile file(mFileName.GetFullPath(), wxT("rb"));
+      if (!file.open(QFile::ReadOnly))//IsOpened())
       {
          // Don't read into cache if file not available
          return 0;
@@ -513,18 +555,18 @@ auto SimpleBlockFile::GetSpaceUsage() const -> DiskByteCount
    
       auHeader header;
    
-      if (file.Read(&header, sizeof(header)) != sizeof(header))
+      if (file.read((char*)&header, sizeof(header)) != sizeof(header))
       {
          // Corrupt file
          return 0;
       }
    
-      wxUint32 encoding;
+      uint32_t encoding;
    
       if (header.magic == 0x2e736e64)
          encoding = header.encoding; // correct endianness
       else
-         encoding = SwapUintEndianess(header.encoding);
+         encoding = qbswap(header.encoding);
    
       switch (encoding)
       {
@@ -540,7 +582,7 @@ auto SimpleBlockFile::GetSpaceUsage() const -> DiskByteCount
          break;
       }
    
-      file.Close();
+      //--file.Close();
    }
 
    return {
@@ -550,10 +592,12 @@ auto SimpleBlockFile::GetSpaceUsage() const -> DiskByteCount
    };
 }
 
-void SimpleBlockFile::Recover(){
-   wxFFile file(mFileName.GetFullPath(), wxT("wb"));
-
-   if( !file.IsOpened() ){
+void SimpleBlockFile::Recover()
+{
+   //--wxFFile file(mFileName.GetFullPath(), wxT("wb"));
+   QFile file(mFileName);
+   if (!file.open(QFile::WriteOnly))//IsOpened())
+   {
       // Can't do anything else.
       return;
    }
@@ -567,16 +611,17 @@ void SimpleBlockFile::Recover(){
    header.encoding = AU_SAMPLE_FORMAT_16;
    header.sampleRate = 44100;
    header.channels = 1;
-   file.Write(&header, sizeof(header));
+   file.write((const char*)&header, sizeof(header));
 
-   for(decltype(mSummaryInfo.totalSummaryBytes) i = 0;
+   for (decltype(mSummaryInfo.totalSummaryBytes) i = 0;
        i < mSummaryInfo.totalSummaryBytes; i++)
-      file.Write(wxT("\0"),1);
+      file.write("\0", 1);
 
-   for(decltype(mLen) i = 0; i < mLen * 2; i++)
-      file.Write(wxT("\0"),1);
-
+   for (decltype(mLen) i = 0; i < mLen * 2; i++)
+      file.write("\0", 1);
 }
+
+#ifdef DEPRECATED_AUDIO_CACHE
 
 void SimpleBlockFile::WriteCacheToDisk()
 {
@@ -592,6 +637,8 @@ bool SimpleBlockFile::GetNeedWriteCacheToDisk()
 {
    return mCache.active && mCache.needWrite;
 }
+
+#endif
 
 bool SimpleBlockFile::GetCache()
 {

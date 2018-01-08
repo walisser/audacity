@@ -14,7 +14,8 @@
 //#include <wx/dynarray.h>
 //#include <wx/ffile.h>
 
-#include "../FileException.h"
+#include "../Audacity.h"
+#include <type_traits>
 
 ///
 /// XMLWriter
@@ -29,8 +30,10 @@ class AUDACITY_DLL_API XMLWriter /* not final */ {
    virtual void StartTag(const QString &name);
    virtual void EndTag(const QString &name);
 
+   // NOTE: WriteAttr() is only overridden by AutoRecovery...
    virtual void WriteAttr(const QString &name, const QString &value);
-//--   virtual void WriteAttr(const QString &name, const wxChar *value);
+   //--virtual void WriteAttr(const QString &name, const wxChar *value);
+   virtual void WriteAttr(const QString &name, const char *value);
 
    virtual void WriteAttr(const QString &name, int value);
    virtual void WriteAttr(const QString &name, bool value);
@@ -39,7 +42,7 @@ class AUDACITY_DLL_API XMLWriter /* not final */ {
    virtual void WriteAttr(const QString &name, size_t value);
    virtual void WriteAttr(const QString &name, float value, int digits = -1);
    virtual void WriteAttr(const QString &name, double value, int digits = -1);
-
+   
    virtual void WriteData(const QString &value);
 
    virtual void WriteSubTree(const QString &value);
@@ -48,14 +51,15 @@ class AUDACITY_DLL_API XMLWriter /* not final */ {
 
    // Escape a string, replacing certain characters with their
    // XML encoding, i.e. '<' becomes '&lt;'
-   QString XMLEsc(const QString & s);
+   static QString XMLEsc(const QString & s);
 
  protected:
-
    bool mInTag;
    int mDepth;
    //--wxArrayString mTagstack;
    //--wxArrayInt mHasKids;
+   QStringList mTagstack;
+   QList<bool> mHasKids;
 
 };
 
@@ -99,25 +103,23 @@ class AUDACITY_DLL_API XMLFileWriter final : /**--private wxFFile,**/ public XML
    /// Write to file. Might throw.
    void Write(const QString &data) override;
 
-   QString GetBackupName() const { return mBackupName; }
+   //--QString GetBackupName() const { return mBackupName; }
 
  private:
 
-   void ThrowException(
-      const QString &fileName, const QString &caption)
-   {
-      throw FileException{ FileException::Cause::Write, fileName, caption };
-   }
+   void ThrowException(const QString &fileName, const QString &caption);
 
    /// Close file without automatically ending tags.
    /// Might throw.
    void CloseWithoutEndingTags(); // for auto-save files
 
+   
    const QString mOutputPath;
    const QString mCaption;
    QString mBackupName;
    const bool mKeepBackup;
 
+   QSaveFile mFile;
    //--wxFFile mBackupFile;
 
    bool mCommitted{ false };
@@ -126,19 +128,21 @@ class AUDACITY_DLL_API XMLFileWriter final : /**--private wxFFile,**/ public XML
 ///
 /// XMLStringWriter
 ///
-class XMLStringWriter final : public QString, public XMLWriter {
+class XMLStringWriter final : public XMLWriter {
 
  public:
 
-   XMLStringWriter(size_t initialSize = 0);
-   virtual ~XMLStringWriter();
+   XMLStringWriter() {}
+   //--XMLStringWriter(size_t initialSize = 0);
+   virtual ~XMLStringWriter() {}
 
    void Write(const QString &data) override;
 
-   QString Get();
+   // get the raw UTF-8 data written
+   const QByteArray& Get() const { return mData; }
 
  private:
-
+   QByteArray mData;
 };
 
 #endif

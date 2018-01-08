@@ -46,6 +46,7 @@ MessageBoxException::MessageBoxException( const QString &caption_ )
 // needs to act like a move constructor.  There must be unique responsibility
 // for each exception thrown to decrease the global count when it is handled.
 MessageBoxException::MessageBoxException( const MessageBoxException& that )
+   : AudacityException(that)
 {
    caption = that.caption;
    moved = that.moved;

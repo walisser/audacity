@@ -346,9 +346,6 @@ void BlockFile::FixSummary(void *data)
 
    if (min != summary64K[0] || max != summary64K[1] || bad > 0) {
       
-      // optimized byteswap assumes aligned pointer
-      Q_ASSERT( (intptr_t)data % 4 == 0);
-      
       unsigned int *buffer = (unsigned int *)data;
       auto len = mSummaryInfo.totalSummaryBytes / 4;
 

@@ -1,15 +1,27 @@
-
-
-
 TEMPLATE = app
 #TARGET = TestXMLValueChecker
-INCLUDEPATH += . ../
 QT = core testlib concurrent
-CONFIG += precompile_header debug
+CONFIG += precompile_header console
+CONFIG -= app_bundle
+
+INCLUDEPATH += . ../
+
 PRECOMPILED_HEADER = ../core/Prefix.h
 #QMAKE_CXXFLAGS += -fdiagnostics-color=always
-MOC_DIR=build/moc
-OBJECTS_DIR=build/obj
+
+precompile_header:*android* {
+    #warning("Android PCH workaround...")
+    #warning($$QMAKESPEC)
+    #QMAKE_CXXFLAGS += -include $$PRECOMPILED_HEADER
+}
+
+!*android* {
+    warning("Enabling GCC coverage")
+    # gcc coverage
+    QMAKE_CXXFLAGS += -fprofile-arcs -ftest-coverage -O0
+    LIBS += -lgcov
+}
+
 DEFINES += BUILDING_AUDACITY
 
 SOURCES += $${TARGET}.cpp \

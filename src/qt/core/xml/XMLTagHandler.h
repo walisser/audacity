@@ -78,7 +78,7 @@ class AUDACITY_DLL_API XMLTagHandler /* not final */ {
 
    // This method will be called on your class if your class has
    // been registered to handle this particular tag.  Parse the
-   // tag and the attribute-value pairs (null-terminated), and
+   // tag and the attribute-value pairs, and
    // return true on success, and false on failure.  If you return
    // false, you will not get any calls about children.
    virtual bool HandleXMLTag(const QString &tag, const QStringMap &attrs) = 0;

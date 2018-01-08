@@ -78,6 +78,7 @@ class PROFILE_DLL_API BlockFile /* not final, abstract */ {
    // Other Properties
 
    // Write cache to disk, if it has any
+#ifdef DEPRECATED_AUDIO_CACHE
    virtual bool GetNeedWriteCacheToDisk() { return false; }
    virtual void WriteCacheToDisk() { /* no cache by default */ }
 
@@ -85,6 +86,7 @@ class PROFILE_DLL_API BlockFile /* not final, abstract */ {
    virtual bool GetNeedFillCache() { return false; }
 
    virtual void FillCache() /* noexcept */ { /* no cache by default */ }
+#endif
 
    /// Stores a representation of this file in XML
    virtual void SaveXML(XMLWriter &xmlFile) = 0;

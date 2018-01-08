@@ -251,6 +251,7 @@ extern const QString& GetCustomSubstitution(const QString& str1 );
 // PORTME translations
 //#define _(s) GetCustomTranslation((s))
 #define _(s) (s)
+#define wxT(s) (s)
 
 #endif // !IN_RC
 

@@ -130,7 +130,7 @@ bool XMLValueChecker::IsGoodIntForRange(const QString & str, const QString & str
    const size_t lenMAXABS = strMAXABS.length();
    const size_t lenStrInt = str.length();
 
-	const QByteArray bytes = str.toUtf8();
+	const QByteArray bytes = str.toLatin1();
    const char* strInt = bytes.data();
 	
    if( lenStrInt < 1 )

@@ -24,15 +24,16 @@ the general functionality for creating XML in UTF8 encoding.
 
 *//*******************************************************************/
 
-#include "../Audacity.h"
-#include <wx/defs.h>
-#include <wx/ffile.h>
-#include <wx/intl.h>
+//#include "../Audacity.h"
+//#include <wx/defs.h>
+//#include <wx/ffile.h>
+//#include <wx/intl.h>
 
-#include <string.h>
+//#include <string.h>
 
-#include "../Internat.h"
 #include "XMLWriter.h"
+//#include "../Internat.h"
+#include "../FileException.h"
 
 //table for xml encoding compatibility with expat decoding
 //see wxWidgets-2.8.12/src/expat/lib/xmltok_impl.h
@@ -50,6 +51,7 @@ static int charXMLCompatiblity[] =
 /* 0x1C */ 0, 0, 0, 0,
   };
 
+/**--
 // These are used by XMLEsc to handle surrogate pairs and filter invalid characters outside the ASCII range.
 #define MIN_HIGH_SURROGATE static_cast<wxUChar>(0xD800)
 #define MAX_HIGH_SURROGATE static_cast<wxUChar>(0xDBFF)
@@ -59,8 +61,24 @@ static int charXMLCompatiblity[] =
 // Unicode defines other noncharacters, but only these two are invalid in XML.
 #define NONCHARACTER_FFFE static_cast<wxUChar>(0xFFFE)
 #define NONCHARACTER_FFFF static_cast<wxUChar>(0xFFFF)
+--**/
 
 
+static void WriteAttrString(XMLWriter& w, const QString& name, const QString& value) {
+   w.Write(QString(" %1=\"%2\"\n").arg(name).arg(w.XMLEsc(value)));
+}
+
+template<typename T>
+static void WriteAttrSimple(XMLWriter& w, const QString& name, T value) {
+   static_assert(!std::is_convertible<T, QString>::value, "String types must be escaped");
+   w.Write(QString(" %1=\"%2\"\n").arg(name).arg(value));
+}
+
+static void WriteAttrDouble(XMLWriter& w, const QString& name, double value, int digits) {
+   w.Write(QString(" %1=\"%2\"\n").arg(name).arg(value, 0, 'f', digits));
+}
+   
+   
 ///
 /// XMLWriter base class
 ///
@@ -68,14 +86,14 @@ XMLWriter::XMLWriter()
 {
    mDepth = 0;
    mInTag = false;
-   mHasKids.Add(false);
+   mHasKids.append(false);
 }
 
 XMLWriter::~XMLWriter()
 {
 }
 
-void XMLWriter::StartTag(const wxString &name)
+void XMLWriter::StartTag(const QString &name)
 // may throw
 {
    int i;
@@ -89,21 +107,22 @@ void XMLWriter::StartTag(const wxString &name)
       Write(wxT("\t"));
    }
 
-   Write(wxString::Format(wxT("<%s"), name.c_str()));
-
-   mTagstack.Insert(name, 0);
+   //--Write(wxString::Format(wxT("<%s"), name.c_str()));
+   Write(QString(wxT("<%1")).arg(name));
+   
+   mTagstack.insert(0, name);
    mHasKids[0] = true;
-   mHasKids.Insert(false, 0);
+   mHasKids.insert(0, false);
    mDepth++;
    mInTag = true;
 }
 
-void XMLWriter::EndTag(const wxString &name)
+void XMLWriter::EndTag(const QString &name)
 // may throw
 {
    int i;
 
-   if (mTagstack.GetCount() > 0) {
+   if (mTagstack.count() > 0) {
       if (mTagstack[0] == name) {
          if (mHasKids[1]) {  // There will always be at least 2 at this point
             if (mInTag) {
@@ -113,14 +132,15 @@ void XMLWriter::EndTag(const wxString &name)
                for (i = 0; i < mDepth - 1; i++) {
                   Write(wxT("\t"));
                }
-               Write(wxString::Format(wxT("</%s>\n"), name.c_str()));
+               //--Write(wxString::Format(wxT("</%s>\n"), name.c_str()));
+               Write(QString(wxT("</%1>\n")).arg(name));
             }
          }
          else {
             Write(wxT(">\n"));
          }
-         mTagstack.RemoveAt(0);
-         mHasKids.RemoveAt(0);
+         mTagstack.removeAt(0);
+         mHasKids.removeAt(0);
       }
    }
 
@@ -128,77 +148,67 @@ void XMLWriter::EndTag(const wxString &name)
    mInTag = false;
 }
 
-void XMLWriter::WriteAttr(const wxString &name, const wxString &value)
+void XMLWriter::WriteAttr(const QString &name, const QString &value)
 // may throw from Write()
 {
-   Write(wxString::Format(wxT(" %s=\"%s\""),
-      name.c_str(),
-      XMLEsc(value).c_str()));
+   WriteAttrString(*this, name, value);
 }
 
-void XMLWriter::WriteAttr(const wxString &name, const wxChar *value)
+//--void XMLWriter::WriteAttr(const QString &name, const wxChar *value)
+//-- may throw from Write()
+//--{
+//--   WriteAttr(name, QString(value));
+//--}
+void XMLWriter::WriteAttr(const QString &name, const char* value)
 // may throw from Write()
 {
-   WriteAttr(name, wxString(value));
+   WriteAttrString(*this, name, value);
 }
 
-void XMLWriter::WriteAttr(const wxString &name, int value)
+void XMLWriter::WriteAttr(const QString &name, int value)
 // may throw from Write()
 {
-   Write(wxString::Format(wxT(" %s=\"%d\""),
-      name.c_str(),
-      value));
+   WriteAttrSimple(*this, name, value);
 }
 
-void XMLWriter::WriteAttr(const wxString &name, bool value)
+void XMLWriter::WriteAttr(const QString &name, bool value)
 // may throw from Write()
 {
-   Write(wxString::Format(wxT(" %s=\"%d\""),
-      name.c_str(),
-      value));
+   WriteAttrSimple(*this, name, value);
 }
 
-void XMLWriter::WriteAttr(const wxString &name, long value)
+void XMLWriter::WriteAttr(const QString &name, long value)
 // may throw from Write()
 {
-   Write(wxString::Format(wxT(" %s=\"%ld\""),
-      name.c_str(),
-      value));
+   WriteAttrSimple(*this, name, value);
 }
 
-void XMLWriter::WriteAttr(const wxString &name, long long value)
+void XMLWriter::WriteAttr(const QString &name, long long value)
 // may throw from Write()
 {
-   Write(wxString::Format(wxT(" %s=\"%lld\""),
-      name.c_str(),
-      value));
+   WriteAttrSimple(*this, name, value);
 }
 
-void XMLWriter::WriteAttr(const wxString &name, size_t value)
+void XMLWriter::WriteAttr(const QString &name, size_t value)
 // may throw from Write()
 {
-   Write(wxString::Format(wxT(" %s=\"%lld\""),
-      name.c_str(),
-      (long long) value));
+   WriteAttrSimple(*this, name, value);
 }
 
-void XMLWriter::WriteAttr(const wxString &name, float value, int digits)
+void XMLWriter::WriteAttr(const QString &name, float value, int digits)
 // may throw from Write()
 {
-   Write(wxString::Format(wxT(" %s=\"%s\""),
-      name.c_str(),
-      Internat::ToString(value, digits).c_str()));
+   WriteAttrDouble(*this, name, value, digits);
 }
 
-void XMLWriter::WriteAttr(const wxString &name, double value, int digits)
+void XMLWriter::WriteAttr(const QString &name, double value, int digits)
 // may throw from Write()
 {
-   Write(wxString::Format(wxT(" %s=\"%s\""),
-      name.c_str(),
-      Internat::ToString(value, digits).c_str()));
+   WriteAttrDouble(*this, name, value, digits);
+
 }
 
-void XMLWriter::WriteData(const wxString &value)
+void XMLWriter::WriteData(const QString &value)
 // may throw from Write()
 {
    int i;
@@ -210,7 +220,7 @@ void XMLWriter::WriteData(const wxString &value)
    Write(XMLEsc(value));
 }
 
-void XMLWriter::WriteSubTree(const wxString &value)
+void XMLWriter::WriteSubTree(const QString &value)
 // may throw from Write()
 {
    if (mInTag) {
@@ -219,46 +229,54 @@ void XMLWriter::WriteSubTree(const wxString &value)
       mHasKids[0] = true;
    }
 
-   Write(value.c_str());
+   //Write(value.c_str());
+   Write(value);
 }
 
 // See http://www.w3.org/TR/REC-xml for reference
-wxString XMLWriter::XMLEsc(const wxString & s)
+QString XMLWriter::XMLEsc(const QString & s)
 {
-   wxString result;
-   int len = s.Length();
+   QString result;
+   const int len = s.length();
 
-   for(int i=0; i<len; i++) {
-      wxUChar c = s.GetChar(i);
-
-      switch (c) {
+   for (int i=0; i < len; i++) {
+      //--wxUChar c = s.GetChar(i);
+      const QChar c = s[i];
+      const int  lc = c.toLatin1();
+      
+      switch (lc) {
          case wxT('\''):
             result += wxT("&apos;");
-         break;
+            break;
 
          case wxT('"'):
             result += wxT("&quot;");
-         break;
+            break;
 
          case wxT('&'):
             result += wxT("&amp;");
-         break;
+            break;
 
          case wxT('<'):
             result += wxT("&lt;");
-         break;
+            break;
 
          case wxT('>'):
             result += wxT("&gt;");
-         break;
+            break;
 
          default:
-            if (sizeof(c) == 2 && c >= MIN_HIGH_SURROGATE && c <= MAX_HIGH_SURROGATE && i < len - 1) {
+            // unpaired unicode surrogates are not allowed in element or attribute names, remove them
+            //--if (sizeof(c) == 2 && c >= MIN_HIGH_SURROGATE && c <= MAX_HIGH_SURROGATE && i < len - 1) {
+            if (c.isHighSurrogate() && i < len - 1) {
                // If wxUChar is 2 bytes, then supplementary characters (those greater than U+FFFF) are represented
                // with a high surrogate (U+D800..U+DBFF) followed by a low surrogate (U+DC00..U+DFFF).
                // Handle those here.
-               wxUChar c2 = s.GetChar(++i);
-               if (c2 >= MIN_LOW_SURROGATE && c2 <= MAX_LOW_SURROGATE) {
+               //--wxUChar c2 = s.GetChar(++i);
+               const QChar c2 = s[++i];
+               
+               //if (c2 >= MIN_LOW_SURROGATE && c2 <= MAX_LOW_SURROGATE) {
+               if (c2.isLowSurrogate()) {
                   // Surrogate pair found; simply add it to the output string.
                   result += c;
                   result += c2;
@@ -268,17 +286,21 @@ wxString XMLWriter::XMLEsc(const wxString & s)
                   i--;
                }
             }
-            else if (!wxIsprint(c)) {
+            //--else if (!wxIsprint(c)) {
+            else if (!c.isPrint()) {
                //ignore several characters such ase eot (0x04) and stx (0x02) because it makes expat parser bail
                //see xmltok.c in expat checkCharRefNumber() to see how expat bails on these chars.
                //also see wxWidgets-2.8.12/src/expat/lib/asciitab.h to see which characters are nonxml compatible
                //post decode (we can still encode '&' and '<' with this table, but it prevents us from encoding eot)
                //everything is compatible past ascii 0x20 except for surrogates and the noncharacters U+FFFE and U+FFFF,
                //so we don't check the compatibility table higher than this.
-               if((c> 0x1F || charXMLCompatiblity[c]!=0) &&
-                     (c < MIN_HIGH_SURROGATE || c > MAX_LOW_SURROGATE) &&
-                     c != NONCHARACTER_FFFE && c != NONCHARACTER_FFFF)
-                  result += wxString::Format(wxT("&#x%04x;"), c);
+               int u = c.unicode();
+               if ( (lc > 0x1F || charXMLCompatiblity[lc] != 0) && // expat compatible
+                     !c.isSurrogate() && //--(c < MIN_HIGH_SURROGATE || c > MAX_LOW_SURROGATE) &&
+                     u != 0xFFFE && 
+                     u != 0xFFFF)
+                  //result += wxString::Format(wxT("&#x%04x;"), u);
+                  result += QString(wxT("&#x%1;")).arg(u, 4, 16, QLatin1Char('0'));
             }
             else {
                result += c;
@@ -294,19 +316,21 @@ wxString XMLWriter::XMLEsc(const wxString & s)
 /// XMLFileWriter class
 ///
 XMLFileWriter::XMLFileWriter
-   ( const wxString &outputPath, const wxString &caption, bool keepBackup )
+   ( const QString &outputPath, const QString &caption, bool keepBackup )
    : mOutputPath{ outputPath }
    , mCaption{ caption }
    , mKeepBackup{ keepBackup }
+   , mFile{ outputPath }
 // may throw
 {
+   /**--
    auto tempPath = wxFileName::CreateTempFileName( outputPath );
    if (!wxFFile::Open(tempPath, wxT("wb")) || !IsOpened())
       ThrowException( tempPath, mCaption );
 
    if (mKeepBackup) {
       int index = 0;
-      wxString backupName;
+      QString backupName;
 
       do {
          wxFileName outputFn{ mOutputPath };
@@ -323,6 +347,7 @@ XMLFileWriter::XMLFileWriter
       if (! mBackupFile.Open( mBackupName, "wb" ) || ! mBackupFile.IsOpened() )
          ThrowException( mBackupName, mCaption );
    }
+   --**/
 }
 
 
@@ -331,10 +356,11 @@ XMLFileWriter::~XMLFileWriter()
    // Don't let a destructor throw!
    GuardedCall< void >( [&] {
       if (!mCommitted) {
-         auto fileName = GetName();
-         if ( IsOpened() )
+         //--auto fileName = GetName();
+         //--if ( IsOpened() )
+         if (mFile.isOpen())
             CloseWithoutEndingTags();
-         ::wxRemoveFile( fileName );
+         //--::wxRemoveFile( fileName );
       }
    } );
 }
@@ -349,7 +375,7 @@ void XMLFileWriter::Commit()
 void XMLFileWriter::PreCommit()
 // may throw
 {
-   while (mTagstack.GetCount()) {
+   while (mTagstack.count()) {
       EndTag(mTagstack[0]);
    }
 
@@ -359,6 +385,13 @@ void XMLFileWriter::PreCommit()
 void XMLFileWriter::PostCommit()
 // may throw
 {
+   if (!mFile.commit())
+   {
+      qWarning("QSaveFile::commit() failed");
+      ThrowException(mOutputPath, mCaption);
+   }
+   
+/**--   
    auto tempPath = GetName();
    if (mKeepBackup) {
       if (! mBackupFile.Close() ||
@@ -379,8 +412,14 @@ void XMLFileWriter::PostCommit()
       throw FileException{
          FileException::Cause::Rename, tempPath, mCaption, mOutputPath
       };
+--**/
 
    mCommitted = true;
+}
+
+void XMLFileWriter::ThrowException(const QString &fileName, const QString &caption)
+{
+   throw FileException{ FileException::Cause::Write, fileName, caption };
 }
 
 void XMLFileWriter::CloseWithoutEndingTags()
@@ -388,45 +427,37 @@ void XMLFileWriter::CloseWithoutEndingTags()
 {
    // Before closing, we first flush it, because if Flush() fails because of a
    // "disk full" condition, we can still at least try to close the file.
-   if (!wxFFile::Flush())
+   //--if (!wxFFile::Flush())
+   if (!mFile.flush())
    {
-      wxFFile::Close();
-      ThrowException( GetName(), mCaption );
+      //--wxFFile::Close();
+      ThrowException( mFile.fileName(), mCaption );
    }
 
    // Note that this should never fail if flushing worked.
-   if (!wxFFile::Close())
-      ThrowException( GetName(), mCaption );
+   //--if (!wxFFile::Close())
+   //--   ThrowException( GetName(), mCaption );
 }
 
-void XMLFileWriter::Write(const wxString &data)
+void XMLFileWriter::Write(const QString &data)
 // may throw
 {
-   if (!wxFFile::Write(data, wxConvUTF8) || Error())
+   //if (!wxFFile::Write(data, wxConvUTF8) || Error())
+   if (!mFile.write(data.toUtf8()))
    {
       // When writing fails, we try to close the file before throwing the
       // exception, so it can at least be deleted.
-      wxFFile::Close();
-      ThrowException( GetName(), mCaption );
+      //--wxFFile::Close();
+      ThrowException( mFile.fileName(), mCaption );
    }
 }
 
 ///
 /// XMLStringWriter class
 ///
-XMLStringWriter::XMLStringWriter(size_t initialSize)
+void XMLStringWriter::Write(const QString &data)
 {
-   if (initialSize)
-   {
-      Alloc(initialSize);
-   }
-}
-
-XMLStringWriter::~XMLStringWriter()
-{
-}
-
-void XMLStringWriter::Write(const wxString &data)
-{
-   Append(data);
+   //qDebug("write:%s", qPrintable(data));
+   //--Append(data);
+   mData += data.toUtf8();
 }

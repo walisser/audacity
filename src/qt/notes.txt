@@ -1,11 +1,15 @@
 TODO:
 put wxT() back in that were taken out, probably needed...
 
+android
+-----------
+qmakespec for android/g++ needs PCH support added
+qdevice.pri changed to api level 17
+
 annotations
 -----------
 
 PORTME - needs qt version
-
 TESTME - needs test; or cannot test due to PORTME issue
 FIXME  - found a bug; bug needs to be fixed
 TODO   - probably should do this; not a bug but a sore point
@@ -17,6 +21,7 @@ translation
 -------------
 _() -> deactivated for now
 %s -> %1, %2, %3 etc and use QString::arg()
+wxT() -> ()
 
 
 type conversions
@@ -62,4 +67,10 @@ misc
 TRUE -> true
 FALSE -> false
 int -> bool
+
+
+<document>
+        <entity cstring="1" qstring="astring" backslash="1" doublequote="1" ampersand="1" lessthan="1" greaterthan="1" int="2147483647" bool="0" long="9223372036854775807" longlong="9223372036854775807" size_t="18446744073709551615" float1="0.111111" float2="0.111" float3="340282346638528859811704183484516925440.000000" double1="0.111111" double2="0.111" double3="179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368.000000"         WriteData>
+WriteSubTree    </entity>
+</document>
 

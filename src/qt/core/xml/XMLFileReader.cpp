@@ -13,14 +13,17 @@
 
 *//*******************************************************************/
 
-#include <wx/defs.h>
-#include <wx/ffile.h>
-#include <wx/intl.h>
+//#include <wx/defs.h>
+//#include <wx/ffile.h>
+//#include <wx/intl.h>
 
-#include <string.h>
+//#include <string.h>
 
-#include "../Internat.h"
+//#include "../Internat.h"
 #include "XMLFileReader.h"
+#include "XMLTagHandler.h"
+
+#include "expat.h"
 
 XMLFileReader::XMLFileReader()
 {
@@ -29,7 +32,7 @@ XMLFileReader::XMLFileReader()
    XML_SetElementHandler(mParser, startElement, endElement);
    XML_SetCharacterDataHandler(mParser, charHandler);
    mBaseHandler = NULL;
-   mErrorStr = wxT("");
+   //mErrorStr = wxT("");
    mHandler.reserve(128);
 }
 
@@ -39,32 +42,34 @@ XMLFileReader::~XMLFileReader()
 }
 
 bool XMLFileReader::Parse(XMLTagHandler *baseHandler,
-                          const wxString &fname)
+                          const QString &fname)
 {
-   wxFFile theXMLFile(fname, wxT("rb"));
-   if (!theXMLFile.IsOpened()) {
-      mErrorStr.Printf(_("Could not open file: \"%s\""), fname.c_str());
+   QFile theXMLFile(fname);
+   if (!theXMLFile.open(QFile::ReadOnly)) {
+      mErrorStr = QString(_("Could not open file: \"%1\"")).arg(fname);
       return false;
    }
 
    mBaseHandler = baseHandler;
 
    const size_t bufferSize = 16384;
-   char buffer[16384];
+   //char buffer[16384];
    int done = 0;
    do {
-      size_t len = fread(buffer, 1, bufferSize, theXMLFile.fp());
-      done = (len < bufferSize);
-      if (!XML_Parse(mParser, buffer, len, done)) {
-         mErrorStr.Printf(_("Error: %hs at line %lu"),
-                          XML_ErrorString(XML_GetErrorCode(mParser)),
-                          (long unsigned int)XML_GetCurrentLineNumber(mParser));
-         theXMLFile.Close();
+      //size_t len = fread(buffer, 1, bufferSize, theXMLFile.fp());
+      //done = (len < bufferSize);
+      QByteArray buffer = theXMLFile.read(bufferSize);
+      done = buffer.size() < bufferSize;
+      if (!XML_Parse(mParser, buffer.data(), buffer.size(), done)) {
+         mErrorStr = QString(_("Error: %1 at line %2"))
+                          .arg(XML_ErrorString(XML_GetErrorCode(mParser)))
+                          .arg((long unsigned int)XML_GetCurrentLineNumber(mParser));
+         //theXMLFile.Close();
          return false;
       }
    } while (!done);
 
-   theXMLFile.Close();
+   //theXMLFile.Close();
 
    // Even though there were no parse errors, we only succeed if
    // the first-level handler actually got called, and didn't
@@ -72,12 +77,12 @@ bool XMLFileReader::Parse(XMLTagHandler *baseHandler,
    if (mBaseHandler)
       return true;
    else {
-      mErrorStr.Printf(_("Could not load file: \"%s\""), fname.c_str());
+      mErrorStr = QString(_("Could not load file: \"%1\"")).arg(fname);
       return false;
    }
 }
 
-wxString XMLFileReader::GetErrorStr()
+QString XMLFileReader::GetErrorStr()
 {
    return mErrorStr;
 }
