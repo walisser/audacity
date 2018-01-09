@@ -16,7 +16,6 @@ precompile_header:*android* {
 }
 
 !*android* {
-    warning("Enabling GCC coverage")
     # gcc coverage
     QMAKE_CXXFLAGS += -fprofile-arcs -ftest-coverage -O0
     LIBS += -lgcov

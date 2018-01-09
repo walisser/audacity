@@ -65,20 +65,20 @@ static int charXMLCompatiblity[] =
 
 
 static void WriteAttrString(XMLWriter& w, const QString& name, const QString& value) {
-   w.Write(QString(" %1=\"%2\"\n").arg(name).arg(w.XMLEsc(value)));
+   w.Write(QString(" %1=\"%2\"").arg(name).arg(w.XMLEsc(value)));
 }
 
 template<typename T>
-static void WriteAttrSimple(XMLWriter& w, const QString& name, T value) {
+static void WriteAttrScalar(XMLWriter& w, const QString& name, T value) {
    static_assert(!std::is_convertible<T, QString>::value, "String types must be escaped");
-   w.Write(QString(" %1=\"%2\"\n").arg(name).arg(value));
+   w.Write(QString(" %1=\"%2\"").arg(name).arg(value));
 }
 
 static void WriteAttrDouble(XMLWriter& w, const QString& name, double value, int digits) {
-   w.Write(QString(" %1=\"%2\"\n").arg(name).arg(value, 0, 'f', digits));
+   w.Write(QString(" %1=\"%2\"").arg(name).arg(value, 0, 'f', digits));
 }
-   
-   
+
+
 ///
 /// XMLWriter base class
 ///
@@ -109,7 +109,7 @@ void XMLWriter::StartTag(const QString &name)
 
    //--Write(wxString::Format(wxT("<%s"), name.c_str()));
    Write(QString(wxT("<%1")).arg(name));
-   
+
    mTagstack.insert(0, name);
    mHasKids[0] = true;
    mHasKids.insert(0, false);
@@ -168,31 +168,31 @@ void XMLWriter::WriteAttr(const QString &name, const char* value)
 void XMLWriter::WriteAttr(const QString &name, int value)
 // may throw from Write()
 {
-   WriteAttrSimple(*this, name, value);
+   WriteAttrScalar(*this, name, value);
 }
 
 void XMLWriter::WriteAttr(const QString &name, bool value)
 // may throw from Write()
 {
-   WriteAttrSimple(*this, name, value);
+   WriteAttrScalar(*this, name, value);
 }
 
 void XMLWriter::WriteAttr(const QString &name, long value)
 // may throw from Write()
 {
-   WriteAttrSimple(*this, name, value);
+   WriteAttrScalar(*this, name, value);
 }
 
 void XMLWriter::WriteAttr(const QString &name, long long value)
 // may throw from Write()
 {
-   WriteAttrSimple(*this, name, value);
+   WriteAttrScalar(*this, name, value);
 }
 
 void XMLWriter::WriteAttr(const QString &name, size_t value)
 // may throw from Write()
 {
-   WriteAttrSimple(*this, name, value);
+   WriteAttrScalar(*this, name, value);
 }
 
 void XMLWriter::WriteAttr(const QString &name, float value, int digits)
@@ -243,7 +243,7 @@ QString XMLWriter::XMLEsc(const QString & s)
       //--wxUChar c = s.GetChar(i);
       const QChar c = s[i];
       const int  lc = c.toLatin1();
-      
+
       switch (lc) {
          case wxT('\''):
             result += wxT("&apos;");
@@ -274,7 +274,7 @@ QString XMLWriter::XMLEsc(const QString & s)
                // Handle those here.
                //--wxUChar c2 = s.GetChar(++i);
                const QChar c2 = s[++i];
-               
+
                //if (c2 >= MIN_LOW_SURROGATE && c2 <= MAX_LOW_SURROGATE) {
                if (c2.isLowSurrogate()) {
                   // Surrogate pair found; simply add it to the output string.
@@ -297,7 +297,7 @@ QString XMLWriter::XMLEsc(const QString & s)
                int u = c.unicode();
                if ( (lc > 0x1F || charXMLCompatiblity[lc] != 0) && // expat compatible
                      !c.isSurrogate() && //--(c < MIN_HIGH_SURROGATE || c > MAX_LOW_SURROGATE) &&
-                     u != 0xFFFE && 
+                     u != 0xFFFE &&
                      u != 0xFFFF)
                   //result += wxString::Format(wxT("&#x%04x;"), u);
                   result += QString(wxT("&#x%1;")).arg(u, 4, 16, QLatin1Char('0'));
@@ -323,6 +323,9 @@ XMLFileWriter::XMLFileWriter
    , mFile{ outputPath }
 // may throw
 {
+   if ( !mFile.open(QFile::WriteOnly) )
+      ThrowException( mFile.fileName(), mCaption );
+
    /**--
    auto tempPath = wxFileName::CreateTempFileName( outputPath );
    if (!wxFFile::Open(tempPath, wxT("wb")) || !IsOpened())
@@ -390,8 +393,8 @@ void XMLFileWriter::PostCommit()
       qWarning("QSaveFile::commit() failed");
       ThrowException(mOutputPath, mCaption);
    }
-   
-/**--   
+
+/**--
    auto tempPath = GetName();
    if (mKeepBackup) {
       if (! mBackupFile.Close() ||
@@ -431,6 +434,7 @@ void XMLFileWriter::CloseWithoutEndingTags()
    if (!mFile.flush())
    {
       //--wxFFile::Close();
+      qWarning("QSaveFile::flush() failed");
       ThrowException( mFile.fileName(), mCaption );
    }
 

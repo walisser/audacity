@@ -1,5 +1,6 @@
 
 
+
 //
 // MALLOC_SIZE
 // return size of a pointer allocated through malloc()
@@ -22,16 +23,16 @@ class FileSizeLimiter
 public:
    FileSizeLimiter()
    {
-      Q_ASSERT( 0 == getrlimit(RLIMIT_FSIZE, &_limit) );
+      Q_REQUIRE( 0 == getrlimit(RLIMIT_FSIZE, &_limit) );
    }
    
    bool apply(size_t bytes)
    {
       _limit.rlim_cur = bytes;
-      Q_ASSERT( 0 == setrlimit(RLIMIT_FSIZE, &_limit) );
+      Q_REQUIRE( 0 == setrlimit(RLIMIT_FSIZE, &_limit) );
       
       // prevent signal on low disk, and return error from system call
-      Q_ASSERT( SIG_ERR != signal(SIGXFSZ, SIG_IGN) );
+      Q_REQUIRE( SIG_ERR != signal(SIGXFSZ, SIG_IGN) );
       
       return true;
    }
@@ -40,8 +41,8 @@ public:
    ~FileSizeLimiter()
    {
       _limit.rlim_cur = _limit.rlim_max;
-      Q_ASSERT( 0 == setrlimit(RLIMIT_FSIZE, &_limit) );
-      Q_ASSERT( SIG_ERR != signal(SIGXFSZ, SIG_DFL) );
+      Q_REQUIRE( 0 == setrlimit(RLIMIT_FSIZE, &_limit) );
+      Q_REQUIRE( SIG_ERR != signal(SIGXFSZ, SIG_DFL) );
    }
 private:
    struct rlimit _limit;

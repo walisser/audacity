@@ -6,7 +6,7 @@
 #fi
 
 mkdir -p build/lcov
-lcov -d build/obj -c -o build/lcov/coverage.info
+lcov -d build/x86_64/obj -c -o build/lcov/coverage.info
 
 
 lcov --remove build/lcov/coverage.info '/qt/test/build/*' -o build/lcov/coverage.info

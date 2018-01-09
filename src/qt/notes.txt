@@ -3,7 +3,7 @@ put wxT() back in that were taken out, probably needed...
 
 android
 -----------
-qmakespec for android/g++ needs PCH support added
+qmakespec for android/g++ needs PCH support added: https://codereview.qt-project.org/#/c/216082/
 qdevice.pri changed to api level 17
 
 annotations
@@ -74,3 +74,28 @@ int -> bool
 WriteSubTree    </entity>
 </document>
 
+Qt bugs
+----------------
+QSaveFile::commit() will create an empty file if disk is full,
+and will not report an error. QSaveFile::flush() will correctly return false
+
+Qt codereview..
+----------------
+<ddubya> is there some quick setup guide for pushing a patch? I can't even find what repo I need to fork
+<svuorela> ddubya: do you have an account ?
+<ddubya> I just setup qt account and I'm logged into codereview
+<sergio> ddubya: git clone ssh://<your_user>@codereview.qt-project.org:29418/qt/qtbase
+<ddubya> k cool
+<sergio> checkout dev branch
+<svuorela> I have http://paste.debian.net/1004090/ in .gitconfig and just does git clone qt:qtbase  and then I can just git push origin HEAD:refs/for/dev
+ for variaus values of qtbase and svuorela
+--- threebar is now known as |||
+<ddubya> so refs/for/dev is where I need to push? I don't see any documentation for that
+<sergio> HEAD:refs/for/dev
+<ddubya> so the first line of the commit message becomes the subject right? are there any conventions here? The patch is for mkspec
+<sergio> just say what it does: android-gcc: Add support for pre-compiled headers
+ also see http://wiki.qt.io/Qt_Contribution_Guidelines
+ usually also git log on the files you touched, to find potential reviewers
+ you should add a Task-number: QTBUG-xyz to link it to the bug
+ 
+ 

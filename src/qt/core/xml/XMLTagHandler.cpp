@@ -43,11 +43,11 @@ bool XMLValueChecker::IsGoodString(const QString & str)
 {
    //--size_t len = str.length();
    //--int nullIndex = str.Find('\0', false);
-   
+
    // Shouldn't be any reason for longer strings, except intentional file corruption.
    // No null characters except terminator.
    if ((str.length() <= PLATFORM_MAX_PATH) &&
-      str.count(QChar())==0)      
+      str.count(QChar())==0)
       //--(nullIndex == -1))
       return true;
    else
@@ -67,7 +67,7 @@ bool XMLValueChecker::IsGoodFileName(const QString & strFileName, const QString 
    //--return (fileName.IsOk() && fileName.FileExists());
 
    QFileInfo info(strDirName, strFileName);
-   
+
    return info.exists();
 }
 
@@ -106,9 +106,8 @@ bool XMLValueChecker::IsGoodPathName(const QString & strPathName)
    // Test the corresponding wxFileName.
    //--wxFileName fileName(strPathName);
    //--return XMLValueChecker::IsGoodFileName(fileName.GetFullName(), fileName.GetPath(wxPATH_GET_VOLUME));
-
-   QFileInfo info(strPathName);
-   return XMLValueChecker::IsGoodFileName(info.fileName(), info.path());
+   return IsGoodPathString(strPathName) &&
+         QFileInfo(strPathName).exists();
 }
 
 bool XMLValueChecker::IsGoodPathString(const QString &str)
@@ -116,7 +115,7 @@ bool XMLValueChecker::IsGoodPathString(const QString &str)
    return (IsGoodString(str) &&
             !str.isEmpty() &&
             (str.length() <= PLATFORM_MAX_PATH));
-} 
+}
 bool XMLValueChecker::IsGoodIntForRange(const QString & str, const QString & strMAXABS)
 {
    if (!IsGoodString(str))
@@ -124,7 +123,7 @@ bool XMLValueChecker::IsGoodIntForRange(const QString & str, const QString & str
 
    // Check that the value won't overflow.
    // Must lie between -Range and +Range-1
-   // We're strict about disallowing spaces and commas, and requiring minus sign to be first 
+   // We're strict about disallowing spaces and commas, and requiring minus sign to be first
    // char for negative. No + sign for positive numbers.  It's disallowed, not optional.
 
    const size_t lenMAXABS = strMAXABS.length();
@@ -132,7 +131,7 @@ bool XMLValueChecker::IsGoodIntForRange(const QString & str, const QString & str
 
 	const QByteArray bytes = str.toLatin1();
    const char* strInt = bytes.data();
-	
+
    if( lenStrInt < 1 )
       return false;
    int offset = (strInt[0] == '-') ?1:0;
@@ -201,7 +200,7 @@ bool XMLTagHandler::ReadXMLTag(const char *tag, const char **attrs)
    //   const char *s = *attrs++;
    //   tmp_attrs.Add(UTF8CTOWX(s));
    //}
-   
+
 // JKC: Previously the next line was:
 // const char **out_attrs = NEW char (const char *)[tmp_attrs.GetCount()+1];
 // however MSVC doesn't like the constness in this position, so this is now
@@ -215,14 +214,14 @@ bool XMLTagHandler::ReadXMLTag(const char *tag, const char **attrs)
    //bool result = HandleXMLTag(UTF8CTOWX(tag).c_str(), out_attrs.get());
 
    QStringMap map;
-   
+
    while (*attrs) {
       const char *key = *attrs++;
       Q_ASSERT(attrs);
       const char *value = *attrs++;
       map[ QString::fromUtf8(key) ] = QString::fromUtf8(value);
    }
-   
+
    return HandleXMLTag(QString::fromUtf8(tag), map);
 }
 

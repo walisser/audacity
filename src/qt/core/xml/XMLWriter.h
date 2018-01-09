@@ -23,7 +23,6 @@
 class AUDACITY_DLL_API XMLWriter /* not final */ {
 
  public:
-
    XMLWriter();
    virtual ~XMLWriter();
 
@@ -42,7 +41,7 @@ class AUDACITY_DLL_API XMLWriter /* not final */ {
    virtual void WriteAttr(const QString &name, size_t value);
    virtual void WriteAttr(const QString &name, float value, int digits = -1);
    virtual void WriteAttr(const QString &name, double value, int digits = -1);
-   
+
    virtual void WriteData(const QString &value);
 
    virtual void WriteSubTree(const QString &value);
@@ -93,6 +92,12 @@ class AUDACITY_DLL_API XMLFileWriter final : /**--private wxFFile,**/ public XML
    /// Composed of two steps, PreCommit() and PostCommit()
    void Commit();
 
+   /// Write to file. Might throw.
+   void Write(const QString &data) override;
+
+   //--QString GetBackupName() const { return mBackupName; }
+
+ private:
    /// Does the part of Commit that might fail because of exhaustion of space
    void PreCommit();
 
@@ -100,20 +105,13 @@ class AUDACITY_DLL_API XMLFileWriter final : /**--private wxFFile,**/ public XML
    /// of space, but might for other reasons
    void PostCommit();
 
-   /// Write to file. Might throw.
-   void Write(const QString &data) override;
-
-   //--QString GetBackupName() const { return mBackupName; }
-
- private:
-
    void ThrowException(const QString &fileName, const QString &caption);
 
    /// Close file without automatically ending tags.
    /// Might throw.
    void CloseWithoutEndingTags(); // for auto-save files
 
-   
+
    const QString mOutputPath;
    const QString mCaption;
    QString mBackupName;

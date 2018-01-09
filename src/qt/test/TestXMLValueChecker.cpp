@@ -95,8 +95,10 @@ void testIsGoodSubdirName()
 
 void testIsGoodPathName()
 {
-   QVERIFY(XMLValueChecker::IsGoodFileName(__FILE__));
-   QVERIFY(!XMLValueChecker::IsGoodFileName("random-parent/random-child"));
+   QTemporaryFile f("tmpfile");
+   QVERIFY( f.open() );
+   QVERIFY(XMLValueChecker::IsGoodPathName(f.fileName()));
+   QVERIFY(!XMLValueChecker::IsGoodPathName("random-parent/random-child"));
 }
 
 void testIsGoodInt()
