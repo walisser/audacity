@@ -117,7 +117,7 @@ BlockFile::~BlockFile()
       // PRL: what should be done if this fails?
       //--wxRemoveFile(mFileName.GetFullPath());
       (void)QFile(mFileName).remove();
-   
+
    ++gBlockFileDestructionCount;
 }
 
@@ -345,7 +345,7 @@ void BlockFile::FixSummary(void *data)
    ComputeMinMax256(summary256, &min, &max, &bad);
 
    if (min != summary64K[0] || max != summary64K[1] || bad > 0) {
-      
+
       unsigned int *buffer = (unsigned int *)data;
       auto len = mSummaryInfo.totalSummaryBytes / 4;
 
@@ -580,7 +580,7 @@ size_t BlockFile::CommonReadData(
             // libsndfile gave us the 3 byte sample in the 3 most
             // significant bytes -- we want it in the 3 least
             // significant bytes.
-            int *intPtr = (int *)data;
+            int32_t *intPtr = (int32_t *)data;
             for( size_t i = 0; i < framesRead; i++ )
                intPtr[i] = intPtr[i] >> 8;
          }
@@ -694,7 +694,7 @@ void AliasBlockFile::WriteSummary()
    // need to ensure that every derived class calls this in *its* constructor
    //--wxFFile summaryFile(mFileName.GetFullPath(), wxT("wb"));
    QFile summaryFile(mFileName);
-   
+
    if( !summaryFile.open(QFile::WriteOnly) ){
       // Never silence the Log w.r.t write errors; they always count
       // as NEW errors
@@ -725,7 +725,7 @@ bool AliasBlockFile::ReadSummary(ArrayOf<char> &data)
    data.reinit( mSummaryInfo.totalSummaryBytes );
    //wxFFile summaryFile(mFileName.GetFullPath(), wxT("rb"));
    QFile summaryFile(mFileName);
-   
+
    {
       //Maybe<wxLogNull> silence{};
       //if (mSilentLog)

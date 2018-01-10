@@ -1,7 +1,7 @@
 TEMPLATE = app
 #TARGET = TestXMLValueChecker
 QT = core testlib concurrent
-CONFIG += precompile_header console
+CONFIG += precompile_header console debug
 CONFIG -= app_bundle
 
 INCLUDEPATH += . ../

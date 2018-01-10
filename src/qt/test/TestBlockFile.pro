@@ -1,6 +1,6 @@
 include(TestCommon.pri)
 
-LIBS += -lsndfile
+LIBS += -lsndfile -lexpat
 
 # Input
 SOURCES += \
@@ -12,4 +12,5 @@ SOURCES += \
    ../core/FileFormats.cpp \
    ../core/blockfile/SimpleBlockFile.cpp \
    ../core/xml/XMLTagHandler.cpp \
-   ../core/xml/XMLWriter.cpp
+   ../core/xml/XMLWriter.cpp \
+   ../core/xml/XMLFileReader.cpp
