@@ -569,7 +569,6 @@ msgstr "Spesiale dank aan:"
 
 #: src/AboutDialog.cpp
 #, fuzzy
-#| msgid "Audacity First Run"
 msgid "Audacity website: "
 msgstr "Eerste gebruik van Audacity"
 
@@ -1222,13 +1221,11 @@ msgstr "Die gegewe bondelopdrag, '%s', is nie erken nie."
 #. i18n-hint: active verb in past tense
 #: src/BatchCommands.cpp
 #, fuzzy
-#| msgid "Apply Chain"
 msgid "Applied batch chain"
 msgstr "Pas ketting toe"
 
 #: src/BatchCommands.cpp
 #, fuzzy
-#| msgid "Apply Chain"
 msgid "Apply chain"
 msgstr "Pas ketting toe"
 
@@ -1240,7 +1237,6 @@ msgstr ""
 
 #: src/BatchCommands.cpp
 #, fuzzy, c-format
-#| msgid "Apply %s"
 msgid "Apply '%s'"
 msgstr "Pas '%s' toe"
 
@@ -1422,7 +1418,6 @@ msgstr "Wil u definitief '%s' uitvee?"
 #. i18n-hint: Benchmark means a software speed test
 #: src/Benchmark.cpp
 #, fuzzy
-#| msgid "&Run Benchmark..."
 msgid "Benchmark"
 msgstr "Laat loop &normtoets..."
 
@@ -1467,13 +1462,11 @@ msgstr "Sluit"
 #. leave untranslated file extension .txt
 #: src/Benchmark.cpp
 #, fuzzy
-#| msgid "&Run Benchmark..."
 msgid "benchmark.txt"
 msgstr "Laat loop &normtoets..."
 
 #: src/Benchmark.cpp
 #, fuzzy
-#| msgid "Export Spectral Data As:"
 msgid "Export Benchmark Data as:"
 msgstr "Voer spektrale data uit as:"
 
@@ -1505,7 +1498,6 @@ msgstr ""
 
 #: src/Benchmark.cpp
 #, fuzzy, c-format
-#| msgid "Performing Repeat"
 msgid "Performing %d edits...\n"
 msgstr "Herhaling word toegepas"
 
@@ -1526,7 +1518,6 @@ msgstr ""
 
 #: src/Benchmark.cpp
 #, fuzzy, c-format
-#| msgid "Paste"
 msgid "Paste: %d\n"
 msgstr "Plak"
 
@@ -1734,7 +1725,6 @@ msgstr "Projekdatalêers word gestoor"
 
 #: src/DirManager.cpp
 #, fuzzy
-#| msgid "Cleaning up temporary files"
 msgid "Cleaning up after failed save"
 msgstr "Tydelike lêers word skoongemaak"
 
@@ -2721,10 +2711,15 @@ msgstr "&Stoor projek"
 msgid "Save Project &As..."
 msgstr "Stoor projek &as..."
 
+<<<<<<< 18283cb834899aceeded75f61528b35d7e76bdaa
 #: src/Menus.cpp
 #, fuzzy
 #| msgid "Export"
 msgid "&Export"
+=======
+#: src/Menus.cpp src/export/ExportCL.cpp src/export/ExportMultiple.cpp
+msgid "Export"
+>>>>>>> qmake build system for lib-src
 msgstr "Uitvoer"
 
 #: src/Menus.cpp
@@ -5749,13 +5744,11 @@ msgstr ""
 
 #: src/Resample.cpp
 #, fuzzy
-#| msgid "Quality"
 msgid "Medium Quality"
 msgstr "Kwaliteit"
 
 #: src/Resample.cpp
 #, fuzzy
-#| msgid "Quality"
 msgid "High Quality"
 msgstr "Kwaliteit"
 
@@ -6707,13 +6700,11 @@ msgstr ""
 
 #: src/FileException.h
 #, fuzzy
-#| msgid "LOF Error"
 msgid "File Error"
 msgstr "LOF-fout"
 
 #: src/InconsistencyException.h
 #, fuzzy
-#| msgid "(external program)"
 msgid "Internal Error"
 msgstr "(eksterne program)"
 
@@ -10374,10 +10365,6 @@ msgstr "(eksterne program)"
 #, c-format
 msgid "Cannot export audio to %s"
 msgstr "Kan nie oudio na %s uitvoer nie"
-
-#: src/export/ExportCL.cpp src/export/ExportMultiple.cpp
-msgid "Export"
-msgstr "Uitvoer"
 
 #: src/export/ExportCL.cpp
 msgid "Exporting the selected audio using command-line encoder"
@@ -14199,7 +14186,6 @@ msgstr "'%s' gewysig na %s"
 
 #: src/tracks/playabletrack/wavetrack/ui/WaveTrackControls.cpp
 #, fuzzy
-#| msgid "Rate Change"
 msgid "WaveColor Change"
 msgstr "Tempoverandering"
 
@@ -14317,7 +14303,6 @@ msgstr "&Stereo na mono"
 
 #: src/tracks/playabletrack/wavetrack/ui/WaveTrackControls.cpp
 #, fuzzy
-#| msgid "Waveform"
 msgid "&Wave Color"
 msgstr "Golfvorm"
 
