@@ -1,0 +1,414 @@
+###
+# File config.prf
+#
+# Global project configuration setup and macros
+#
+# - Include this file at the first line of the .pro
+# - Usually call endProject() at the last line of the .pro
+# - The normal qmake variables still apply, and have the same meaning
+#
+# There are additional variables which may be overridden by qmake
+# ----------------------------------------------------------
+# LIBSRC     == absolute path to LOCAL sources (default:audacity/lib-src)
+# BUILD_DIR  == absolute path to build products (default:/.../qt/project)
+# PROJECT_DIR == absolute path to dir containing this file (default:/.../qt/project)
+# PKG_CONFIG == pkg-config exe name & path (default:pkg-config if not supplied)
+# CONFIG_H   == list of #defines to be added to qmake_config.h (commas replaced with spaces)
+#
+# The following are not overrideable but useful in projects
+# ----------------------------------------------------------
+# ARCH       == host system type (ia32,x86_64,armv7a,...)
+# HOST       == ID of the host/target (format: $$QMAKESPEC-$$ARCH)
+# CONFIG_LOG == config.log file path
+#
+# The following CONFIG variables can be set to change the build
+# --------------------------------------------------------------
+# local_libs == use local libs even if system lib is present in /usr/lib for example
+###
+
+
+###
+# Function addLibrary
+#
+# Configure a library from system libraries (pkg-config) or local sources
+#
+#
+# Arguments
+# ++++
+# $$1 = pkg-config package name e.g. xyz
+#
+# Output
+# ++++++
+# LIBXYZ_NAME    = libxyz
+# LIBXYZ_VERSION = x.y.z
+# LIBXYZ_SOURCE  = LOCAL|SYSTEM
+#
+###
+defineTest(addLibrary) {
+
+   name=$$1
+   libname=lib$$name
+   prefix=$$upper($$libname)
+   source=INVALID
+   version=0.0.0
+   srcdir=$$LIBSRC/$$libname
+
+   local_libs|!system("$$PKG_CONFIG $$name --exists") {
+
+      !exists($$srcdir) {
+         #message($$srcdir doesnt exist)
+         srcdir=$$LIBSRC/$$name
+         !exists($$srcdir) {
+            warning(configLibrary $$name: expected sources in $$absolute_path($$srcdir))
+            return(false)
+         }
+      }
+
+      versionCmd="echo unknown"
+      exists($$srcdir/configure.ac) {
+         versionCmd="cat $$srcdir/configure.ac | grep AC_INIT | sed -r 's/.+\\[([0-9\\.]+)\\].+/\\1/'"
+      }
+      else:exists($$srcdir/CMakeLists.txt) {
+         message("cmake things")
+         versionCmd="cat $$srcdir/CMakeLists.txt | grep set\\(PACKAGE_VERSION | sed -re 's/.*\"([0-9\.]+)\".*/\1/'"
+      }
+      else: {
+         warning(configLibrary $$name: unknown version scheme)
+      }
+
+      # lib may have it's own setup or use the generic one that follows
+      deps="$${PROJECT_DIR}/$${name}/$${name}.prf"
+      exists($$deps):include($$deps)
+      else {
+         # this generally works...
+         INCLUDEPATH *= $$srcdir/include
+         INCLUDEPATH *= $$BUILD_DIR/$$name
+         LIBS *= $$BUILD_DIR/$$name/build/$$HOST/$${libname}.a
+      }
+
+      export(INCLUDEPATH)
+      export(LIBS)
+      export(CONFIG)
+
+      source = LOCAL
+      version = $$system($$versionCmd)
+   }
+   else: {
+      flags = $$system("$$PKG_CONFIG $$name --cflags")
+
+      QMAKE_CFLAGS *= $$flags
+      QMAKE_CXXFLAGS *= $$flags
+      LIBS *= $$system("$$PKG_CONFIG $$name --libs")
+
+      export(QMAKE_CFLAGS)
+      export(QMAKE_CXXFLAGS)
+
+      source = SYSTEM
+      version = $$system("$$PKG_CONFIG $$name --modversion")
+    }
+
+   !staticlib {
+      export(LIBS)
+   }
+
+   message(Using $$source $$libname v$$version)
+
+   $${prefix}_NAME    = $$libname
+   $${prefix}_SOURCE  = $$source
+   $${prefix}_VERSION = $$version
+
+   export($${prefix}_NAME)
+   export($${prefix}_SOURCE)
+   export($${prefix}_VERSION)
+
+   return(true)
+}
+
+###
+# Function test
+#
+# Test a feature by attempting to compile a header.
+# We can't execute anything because we must be able
+# to cross-compile.
+#
+# -Compiles a file [feature].h containing static assertion
+# -If success, includes [feature].prf, which add defines to CONFIG_H
+# -Caches the result in BUILD_DIR/cache/.../[feature]-[yes|no]
+# -Contents of CONFIG_H eventually end up in qmake_config.h
+##
+defineTest(test) {
+
+   feature=$$1
+   src=./$${feature}.h
+   inc=./$${feature}.prf
+   cachefile=$$BUILD_DIR/cache/$$HOST/$$feature
+   cachedir=$$dirname(cachefile)
+   ok=false
+   cached=''
+
+   mkpath($$cachedir)|error("failed to make cache dir (1)")
+   exists($$cachedir)|error("failed to make cache dir (2)")
+
+   !exists($$src):error(no source file for test [$$feature])
+
+   exists($$cachefile-yes) {
+      include($$inc)
+      export(CONFIG_H)
+      ok=true
+      cached=" (cached)"
+   }
+   else:exists($$cachefile-no) {
+      cached=" (cached)"
+   }
+   else {
+
+      system("$$QMAKE_CXX $$QMAKE_CXXFLAGS -std=c++11 -x c++ -fsyntax-only  $$src >> '$${CONFIG_LOG}' 2>&1") {
+         include($$inc)
+         export(CONFIG_H)
+         write_file($${cachefile}-yes, feature)|error("failed to cache result (y)")
+         ok=true
+      }
+      else {
+         write_file($$cachefile-no, feature)|error("failed to cache result(n)")
+      }
+   }
+
+   !silent {
+      if ($$ok):message([$$feature]=yes$${cached})
+      else:message([$$feature]=no$${cached})
+   }
+
+   return($$ok)
+}
+
+###
+# Function fail
+#
+# Fail a test and provided a useful message.
+#
+###
+defineTest(fail) {
+   log=$$relative_path($$CONFIG_LOG,$$_PRO_FILE_PWD_)
+   error("Configuration test [$$1] failed, details in ./$$log")
+   return(false)
+}
+
+###
+# Function writeShellVars
+#
+# Write qmake.vars in project dir containing "export XX=value"
+#
+##
+defineTest(writeShellVars) {
+   file=$$_PRO_FILE_PWD_/qmake.vars
+
+   vars +="export HOST='$$HOST'"
+   vars +="export OBJECTS_DIR='$$relative_path($$OBJECTS_DIR)'"
+   vars +="export MOC_DIR='$$relative_path($$MOC_DIR)'"
+   vars +="export DESTDIR='$$relative_path($$DESTDIR)'"
+
+   write_file($$file, vars);
+   message(wrote $$file);
+}
+
+###
+# Function cppDefines
+#
+# Return true if C preprocessor #defines contains a string
+#
+# Note that spaces in defines have been replaced with a comma (,)
+#
+###
+defineTest(cppDefines) {
+
+   result=$$find(CPP, $$1)
+
+   count(result, 1):return(true)
+   else:return(false)
+}
+
+###
+# Function endProject()
+#
+# Common finishing stuff, must be last thing in the .pro
+# Writes CONFIG_H contents to qmake_config.h
+#
+###
+defineTest(endProject) {
+
+   # clean up after lib detection
+   QMAKE_CFLAGS=$$unique(QMAKE_CFLAGS)
+   QMAKE_CXXFLAGS=$$unique(QMAKE_CFLAGS)
+   LIBS=$$unique(LIBS)
+
+   #message(INCLUDEPATH=$$INCLUDEPATH)
+   vars=CONFIG INCLUDEPATH LIBS QMAKE_CFLAGS QMAKE_CXXFLAGS QMAKE_LINK \
+      LIBSRC BUILD_DIR PROJECT_DIR CONFIG_H
+   for (var, vars) {
+      !silent:message($$var=$$eval($$$$var))
+
+      section=$$escape_expand(\\n)$$var --------------------------------
+      write_file($$CONFIG_LOG,section,append))
+      write_file($$CONFIG_LOG,$$var,append))
+   }
+
+   # do the foo for ./configure emulation
+   D='$$escape_expand(\\n)$${LITERAL_HASH}define '
+   CONFIG_H=$$join(CONFIG_H, $$D, $$D)
+   CONFIG_H=$$replace(CONFIG_H, ",", " ")
+
+   #message(CONFIG_H=$$CONFIG_H)
+   #message(CONFIG=$$CONFIG)
+
+   #write_file($$CONFIG_LOG,CONFIG_H,append)
+   #write_file($$CONFIG_LOG,CONFIG,append)
+
+   # FIXME: add to clean files
+   OUTFILE=$$DESTDIR/qmake_config.h
+   write_file($$OUTFILE, CONFIG_H): {
+
+      message(wrote $$OUTFILE)
+   }
+
+   # diagnostic, show all qmake variables
+   #for(var, $$list($$enumerate_vars())) {
+   #    message(VAR=$$var)
+   #    message("   "$$eval($$var))
+   #}
+}
+
+
+# common setup
+!defined(PKG_CONFIG,var) {
+   PKG_CONFIG=pkg-config
+}
+
+message(PKG_CONFIG...$$PKG_CONFIG)
+
+LIBSRC=$$(HOME)/sw/audacity/lib-src
+BUILD_DIR=$$(HOME)/sw/audacity/qt/project
+PROJECT_DIR=$$BUILD_DIR
+
+# config options
+#CONFIG += local_libs
+
+QT=
+
+# nuke default stuff that causes problems
+CONFIG -= debug_and_release
+CONFIG -= debug_and_release_target
+CONFIG -= release
+CONFIG *= debug
+#CONFIG *= release
+
+win32 {
+   CONFIG *= console
+   QMAKE_CFLAGS   *= -march=core2
+   QMAKE_CXXFLAGS *= -march=core2
+}
+
+# we're always going to use local libs on some targets
+android|ios {
+   CONFIG *= local_libs
+}
+
+#
+# ./configure emulation...
+# - stuff configure outputs in CONFIG_H variables,
+# - values cannot contain spaces, use COMMA for space
+# - endProject() writes them to build/$$HOST/qmake_config.h
+# - qmake_config.h is included from generic config.h
+#
+#CONFIG_H +=
+
+# ensure the config.h that is pulled in comes from the project directory,
+# and not some remnants from the source directory
+INCLUDEPATH = $$_PRO_FILE_PWD_
+
+# Get all preprocessor defines from compiler and use to detect arch
+# This way we do not have to compile any tests for most things
+# Space replaced with commas so we can more easily query things
+# TODO: this only works on gcc & clang on unixen
+CPP=$$system("$$QMAKE_CC $$QMAKE_CFLAGS -dM -E - </dev/null 2>&1 | sed -re s/\\\s/,/g")
+#message($$CPP)
+#log($$CPP)
+
+
+# We need to know the arch right away to determine where build products go
+ARCH = unknown
+
+cppDefines(__i386__)|cppDefines(__x86_64__) {
+
+   #message(x86 architecture detected)
+   CONFIG_H += HAVE_X86INTRIN_H
+
+        cppDefines(__x86_64__): ARCH = x86_64
+   else:cppDefines(__i386__):   ARCH = ia32
+   else:                        ARCH = x86-unknown
+}
+else:cppDefines(__arm__) {
+
+   #message(arm architecture detected)
+
+   cppDefines(__ARM_ARCH_7A__): ARCH = armv7a
+   else: ARCH = arm-unknown
+}
+else {
+   warning(Unknown architecture)
+}
+
+cppDefines("__BYTE_ORDER__,__ORDER_LITTLE_ENDIAN__") {
+      CONFIG_H += CPU_IS_BIG_ENDIAN,0
+      CONFIG_H += CPU_IS_LITTLE_ENDIAN,1
+      CONFIG_H += WORDS_BIGENDIAN,0
+      CONFIG_H += BYTEORDER,1234
+}
+else: {
+      CONFIG_H += CPU_IS_BIG_ENDIAN,1
+      CONFIG_H += CPU_IS_LITTLE_ENDIAN,0
+      CONFIG_H += WORDS_BIGENDIAN,1
+      CONFIG_H += BYTEORDER,4321
+}
+
+# we know arch now so setup build paths
+HOST = $$basename(QMAKESPEC)-$$ARCH
+
+# mingw-ar chokes if "++" is in a path...
+HOST = $$replace(HOST, "g\+\+", "gcc")
+
+# TODO: set DESTDIR optionally for out-of-tree builds
+DESTDIR      = $$_PRO_FILE_PWD_/build/$$HOST
+OBJECTS_DIR  = $$DESTDIR
+MOC_DIR      = $$DESTDIR
+INCLUDEPATH += $$DESTDIR
+CONFIG_LOG   = $$absolute_path($$DESTDIR/config.log)
+
+message(ARCH=$$ARCH)
+message(DESTDIR=$$DESTDIR)
+message(LOGFILE=$$CONFIG_LOG)
+
+mkpath($$DESTDIR)|error(Failed to create build directory)
+
+# reset config log and add some useful info
+write_file($$CONFIG_LOG, _PRO_FILE_)
+write_file($$CONFIG_LOG, _DATE_, append)
+write_file($$CONFIG_LOG, HOST, append)
+#write_file($$CONFIG_LOG, CPP, append)
+
+# do some configure tests and output autoconf-style HAVE_XXX and friends
+message(Testing compiler...)
+
+# tests generated by config.tests/sizeof.py
+include(./config/sizeof.prf)|error(Missing sizeof tests... run sizeof.py!)
+
+# TODO: add tests for these things
+!android:!win32 {
+   CONFIG_H += HAVE_ICONV,1
+   CONFIG_H += HAVE_LANGINFO_CODESET,1
+}
+
+!win32 {
+   CONFIG_H += HAVE_BYTESWAP,1
+   CONFIG_H += HAVE_GMTIME_R,1
+   CONFIG_H += HAVE_ALLOCA_H,1
+}

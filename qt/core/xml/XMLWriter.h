@@ -34,13 +34,25 @@ class AUDACITY_DLL_API XMLWriter /* not final */ {
    //--virtual void WriteAttr(const QString &name, const wxChar *value);
    virtual void WriteAttr(const QString &name, const char *value);
 
-   virtual void WriteAttr(const QString &name, int value);
    virtual void WriteAttr(const QString &name, bool value);
-   virtual void WriteAttr(const QString &name, long value);
-   virtual void WriteAttr(const QString &name, long long value);
-   virtual void WriteAttr(const QString &name, size_t value);
+   virtual void WriteAttr(const QString &name, int value); // usually 4
+   virtual void WriteAttr(const QString &name, long value); // 4 or 8 bytes
+   virtual void WriteAttr(const QString &name, long long value); // 8 bytes
+   virtual void WriteAttr(const QString &name, unsigned long long value); // 8 bytes
+
+   //virtual void WriteAttr(const QString &name, size_t value); // 4 or 8 bytes usually
    virtual void WriteAttr(const QString &name, float value, int digits = -1);
    virtual void WriteAttr(const QString &name, double value, int digits = -1);
+
+   // some more types to shutup compiler
+   void WriteAttr(const QString &name, unsigned int value) {
+      static_assert(sizeof(unsigned int) <= sizeof(unsigned long long), "illegal narrowing conversion");
+      WriteAttr(name, (unsigned long long)value);
+   }
+   void WriteAttr(const QString &name, unsigned long int value) {
+      static_assert(sizeof(long unsigned int) <= sizeof(unsigned long long), "illegal narrowing conversion");
+      WriteAttr(name, (unsigned long long)value);
+   }
 
    virtual void WriteData(const QString &value);
 

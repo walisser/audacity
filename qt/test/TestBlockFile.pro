@@ -1,8 +1,5 @@
-include(TestCommon.pri)
+include(config_pre.prf)
 
-LIBS += -lsndfile -lexpat
-
-# Input
 SOURCES += \
    ../core/BlockFile.cpp \
    ../core/SampleFormat.cpp \
@@ -14,3 +11,8 @@ SOURCES += \
    ../core/xml/XMLTagHandler.cpp \
    ../core/xml/XMLWriter.cpp \
    ../core/xml/XMLFileReader.cpp
+
+addLibrary(sndfile)|error(Failed to find sndfile)
+addLibrary(expat)|error(Failed to find expat)
+
+include(config_post.prf)

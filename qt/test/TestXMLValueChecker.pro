@@ -1,5 +1,6 @@
-include(TestCommon.pri)
+include(config_pre.prf)
 
-# Input
 SOURCES += \
    ../core/xml/XMLTagHandler.cpp
+
+include(config_post.prf)

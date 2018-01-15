@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+import os
+
 sizeof = [
    ["short",2],
    ["int",4],
@@ -19,6 +21,8 @@ sizeof = [
    ["ssize_t",4,8],
    ["wchar_t",2,4],
 ]
+
+os.mkdir('sizeof')
 
 for typeConf in sizeof:
    key=typeConf[0]
@@ -41,11 +45,11 @@ for typeConf in sizeof:
       fh.close
 
       #print(config)
-      fh=open('sizeof/%s%d.pri' % (name, size), 'w')
+      fh=open('sizeof/%s%d.prf' % (name, size), 'w')
       fh.write(config)
       fh.close
 
-fh=open('sizeof.pri','w')
+fh=open('sizeof.prf','w')
 for typeConf in sizeof:
    key=typeConf[0]
    #print(key)

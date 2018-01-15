@@ -1,6 +1,7 @@
-include(TestCommon.pri)
+include(config_pre.prf)
 
-# Input
 SOURCES += \
    ../core/SampleFormat.cpp \
    ../core/Dither.cpp
+
+include(config_post.prf)

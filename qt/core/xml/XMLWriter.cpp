@@ -189,7 +189,7 @@ void XMLWriter::WriteAttr(const QString &name, long long value)
    WriteAttrScalar(*this, name, value);
 }
 
-void XMLWriter::WriteAttr(const QString &name, size_t value)
+void XMLWriter::WriteAttr(const QString &name, unsigned long long value)
 // may throw from Write()
 {
    WriteAttrScalar(*this, name, value);

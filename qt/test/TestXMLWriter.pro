@@ -1,11 +1,12 @@
-include(TestCommon.pri)
+include(config_pre.prf)
 
-LIBS += -lexpat
-
-# Input
 SOURCES += \
    ../core/xml/XMLWriter.cpp \
    ../core/xml/XMLFileReader.cpp \
    ../core/xml/XMLTagHandler.cpp \
    ../core/FileException.cpp \
    ../core/AudacityException.cpp \
+
+addLibrary(expat)|error(This test requires expat)
+
+include(config_post.prf)

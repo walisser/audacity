@@ -1,0 +1,5 @@
+
+# included from addLibrary() if you link to expat
+INCLUDEPATH += $$srcdir/lib
+
+!staticlib:LIBS *= $$BUILD_DIR/$$name/build/$$HOST/$${libname}.a

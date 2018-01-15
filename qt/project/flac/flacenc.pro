@@ -1,5 +1,5 @@
 
-include(../config.pri)
+include(../config.prf)
 
 TEMPLATE=app
 #TARGET=flac
@@ -21,12 +21,6 @@ flac_SOURCES = \
         local_string_utils.c \
         utils.c \
         vorbiscomment.c \
-
-extra_ogg_sources = \
-        ogg_decoder_aspect.c \
-        ogg_encoder_aspect.c \
-        ogg_helper.c \
-        ogg_mapping.c
 
 share_sources = \
         getopt/getopt.c \
@@ -67,21 +61,14 @@ else:contains(ARCH,x86_64): CONFIG_H += FLAC__CPU_X86_64,1
 else:contains(ARCH,armv7a): CONFIG_H += FLAC__CPU_ARM7A,1
 else:error(Unsupported compiler or CPU)
 
-contains(CPP, __SSE__): CONFIG_H += FLAC__SSE_OS,1
+cppDefines(__SSE__): CONFIG_H += FLAC__SSE_OS,1
 
 contains(ARCH,i686)|contains(ARCH,x86_64): CONFIG_H += FLAC__HAS_X86INTRIN
 
-# force local libs to be used
-CONFIG *= local_libs
+!addLibrary(flac):error("Cannot find flac library")
 
 addLibrary(ogg) {
    CONFIG_H += FLAC__HAS_OGG,1
-
-   for (SRC, extra_ogg_sources) {
-      SOURCES += $$ROOT/src/libFLAC/$$SRC
-   }
 }
-
-!addLibrary(flac):error("Cannot find flac library")
 
 endProject()

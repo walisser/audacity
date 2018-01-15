@@ -1,0 +1,10 @@
+
+# included from addLibrary() if you link to sndfile
+INCLUDEPATH *= $$srcdir/include
+INCLUDEPATH *= $$BUILD_DIR/$$name
+
+!staticlib:LIBS *= $$BUILD_DIR/$$name/build/$$HOST/$${libname}.a
+
+addLibrary(vorbis)|error(Failed to locate vorbis)
+addLibrary(ogg)|error(Failed to locate ogg)
+addLibrary(flac)|error(Failed to locate flac)

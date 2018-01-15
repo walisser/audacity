@@ -186,14 +186,13 @@ void writeTestData(XMLWriter& w)
    w.WriteAttr("ushort", (unsigned short)USHRT_MAX);
 
    w.WriteAttr("int", (int)INT_MAX);
-   // FIXME: shouldn't this work?
-   //w.WriteAttr("uint", (unsigned int)UINT_MAX);
+   w.WriteAttr("uint", (unsigned int)UINT_MAX);
 
    w.WriteAttr("long", (long)LONG_MAX);
    w.WriteAttr("ulong", (unsigned long)ULONG_MAX);
 
    w.WriteAttr("longlong", (long long)LLONG_MAX);
-   //w.WriteAttr("ulonglong", (unsigned long long)ULLONG_MAX);
+   w.WriteAttr("ulonglong", (unsigned long long)ULLONG_MAX);
 
    w.WriteAttr("size_t", (size_t)UINT64_MAX);
    w.WriteAttr("float1", (float)1/9);
@@ -240,9 +239,11 @@ void verifyTestAttrs(const QStringMap& attrs)
    CMP("short", toShort, short, SHRT_MAX);
    CMP("ushort", toUShort, unsigned short, USHRT_MAX);
    CMP("int", toInt, int, INT_MAX);
+   CMP("uint", toUInt, unsigned int, UINT_MAX);
    CMP("long", toLong, long, LONG_MAX);
    CMP("ulong", toULong, unsigned long, ULONG_MAX);
    CMP("longlong", toLongLong, long long, LLONG_MAX);
+   CMP("ulonglong", toULongLong, unsigned long long, ULLONG_MAX);
    CMP("size_t", toULongLong, size_t, UINT64_MAX);
    CMP("float1",  toFloat, float, 0.111111f);
    CMP("float2",  toFloat, float, 0.111f);

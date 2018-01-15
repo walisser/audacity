@@ -1,7 +1,9 @@
+include(../project/config.prf)
+
 TEMPLATE = app
 #TARGET = TestXMLValueChecker
 QT = core testlib concurrent
-CONFIG += precompile_header console debug
+CONFIG += precompile_header console
 CONFIG -= app_bundle
 
 INCLUDEPATH += . ../

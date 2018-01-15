@@ -1,0 +1,10 @@
+
+# included from addLibrary() if you link to vorbis
+INCLUDEPATH *= $$srcdir/include
+INCLUDEPATH *= $$BUILD_DIR/$$name
+
+!staticlib:LIBS *= $$BUILD_DIR/$$name/build/$$HOST/libvorbis.a
+!staticlib:LIBS *= $$BUILD_DIR/$$name/build/$$HOST/libvorbisenc.a
+!staticlib:LIBS *= $$BUILD_DIR/$$name/build/$$HOST/libvorbisfile.a
+
+addLibrary(ogg)|error(Failed to locate ogg)

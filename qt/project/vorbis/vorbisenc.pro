@@ -1,4 +1,4 @@
-include(../config.pri)
+include(../config.prf)
 
 TEMPLATE=lib
 #TARGET=vorbis
