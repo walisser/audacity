@@ -140,9 +140,15 @@ void QuitAudacity();
 //#endif
 
 #ifdef Q_OS_WIN // __WXMSW__
-#include "configwin.h"
-#undef PLATFORM_MAX_PATH
-#define PLATFORM_MAX_PATH MAX_PATH
+   #ifdef __MINGW32__
+      #include "configmingw.h"
+      #undef PLATFORM_MAX_PATH
+      #define PLATFORM_MAX_PATH PATH_MAX
+   #else
+      #include "configwin.h"
+      #undef PLATFORM_MAX_PATH
+      #define PLATFORM_MAX_PATH MAX_PATH
+   #endif
 #endif
 
 /* Magic for dynamic library import and export. This is unfortunately

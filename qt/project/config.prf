@@ -24,6 +24,8 @@
 # The following CONFIG variables can be set to change the build
 # --------------------------------------------------------------
 # local_libs == use local libs even if system lib is present in /usr/lib for example
+# release_qt == use release link libs of qt even if CONFIG+=debug is set
+#
 ###
 
 
@@ -277,6 +279,23 @@ defineTest(endProject) {
    #}
 }
 
+###
+# Function qtPlatformTargetSuffix
+#
+# Overrides definition in qt_functions.prf
+# so we can change link lib behavior
+#
+###
+defineReplace(qtPlatformTargetSuffix) {
+    suffix =
+    !release_qt:CONFIG(debug, debug|release) {
+        !debug_and_release|build_pass {
+            mac: return($${suffix}_debug)
+            win32: return($${suffix}d)
+        }
+    }
+    return($$suffix)
+}
 
 # common setup
 !defined(PKG_CONFIG,var) {
@@ -310,6 +329,11 @@ win32 {
 # we're always going to use local libs on some targets
 android|ios {
    CONFIG *= local_libs
+}
+
+# win32 qt usually has irritating debug and release setup
+win32 {
+   CONFIG *= release_qt
 }
 
 #

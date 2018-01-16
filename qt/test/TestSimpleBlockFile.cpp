@@ -20,8 +20,7 @@ QString DirManager::GetProjectDataDir() { return "."; }
 bool DirManager::HandleXMLTag(const QString &tag, const QStringMap &attrs)
 {
    Q_REQUIRE(tag == "simpleblockfile");
-   DirManager dm;
-   _dirManagerBlockFile = SimpleBlockFile::BuildFromXML(dm, attrs);
+   _dirManagerBlockFile = SimpleBlockFile::BuildFromXML(*this, attrs);
    return true;
 }
 
@@ -42,7 +41,7 @@ bool Internat::CompatibleToDouble(const QString& stringToConvert, double* result
 }
 // end stubs
 
-class TestBlockFile : public QObject
+class TestSimpleBlockFile : public QObject
 {
    Q_OBJECT
 private Q_SLOTS:
@@ -313,5 +312,5 @@ void testSimpleBlockFile(QString fileName, const SampleBuffer& samples,
 
 };
 
-QTEST_MAIN(TestBlockFile)
-#include "TestBlockFile.moc"
+QTEST_MAIN(TestSimpleBlockFile)
+#include "TestSimpleBlockFile.moc"

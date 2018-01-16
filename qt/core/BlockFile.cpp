@@ -116,7 +116,8 @@ BlockFile::~BlockFile()
    if (!IsLocked()) //-- && mFileName.HasName())
       // PRL: what should be done if this fails?
       //--wxRemoveFile(mFileName.GetFullPath());
-      (void)QFile(mFileName).remove();
+      if (!mFileName.isEmpty()) // with SilentBlockFile this is empty
+         (void)QFile(mFileName).remove();
 
    ++gBlockFileDestructionCount;
 }

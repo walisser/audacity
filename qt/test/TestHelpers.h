@@ -8,6 +8,10 @@
 #ifdef Q_OS_UNIX
 #   include <malloc.h>
 #   define MALLOC_SIZE(ptr) malloc_usable_size(ptr)
+
+#elif defined (Q_OS_WIN32) | defined(Q_OS_WIN64)
+#   define MALLOC_SIZE(ptr) _msize(ptr)
+
 #else
 #   error portme
 #endif
@@ -25,18 +29,18 @@ public:
    {
       Q_REQUIRE( 0 == getrlimit(RLIMIT_FSIZE, &_limit) );
    }
-   
+
    bool apply(size_t bytes)
    {
       _limit.rlim_cur = bytes;
       Q_REQUIRE( 0 == setrlimit(RLIMIT_FSIZE, &_limit) );
-      
+
       // prevent signal on low disk, and return error from system call
       Q_REQUIRE( SIG_ERR != signal(SIGXFSZ, SIG_IGN) );
-      
+
       return true;
    }
-  
+
    // revert limits
    ~FileSizeLimiter()
    {
