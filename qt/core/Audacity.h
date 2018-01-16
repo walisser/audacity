@@ -119,13 +119,14 @@ void QuitAudacity();
 
 #define PLATFORM_PATH_SEPARATOR "/"
 
-#ifdef Q_OS_MAC // __WXMAC__
-#include "configmac.h"
-#undef PLATFORM_MAX_PATH
-#define PLATFORM_MAX_PATH PATH_MAX
-#endif
+// n.b. configmac nearly the same as configunix...we can differentiate in qmake.pro
+//#ifdef Q_OS_MACOS // __WXMAC__
+//#include "configmac.h"
+//#undef PLATFORM_MAX_PATH
+//#define PLATFORM_MAX_PATH PATH_MAX
+//#endif
 
-#ifdef Q_OS_UNIX //__WXGTK__
+#if defined(Q_OS_UNIX) || defined(Q_OS_MACOS) //__WXGTK__
 #include "configunix.h"
 // Some systems do not restrict the path length and therefore PATH_MAX is undefined
 #ifdef PATH_MAX

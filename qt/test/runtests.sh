@@ -102,7 +102,7 @@ for x in ${TESTS}; do
          ln -sfv shared.gch $PCH_PREFIX$test$PCH_SUFFIX
       ) &&
 
-      make -j12 &&
+      make -j${QMAKE_HOST_CPU_COUNT}  &&
 
       # FIXME: install is forced even if there was no change
       make install INSTALL_ROOT="${DESTDIR}/$test/"
@@ -151,9 +151,15 @@ for x in ${TESTS}; do
 
    else
 
+      # run on local OS... in Mac OS X the test is in the app bundle
+      # ...not by choice but because of PCH bug
       (
       source qmake.vars &&
-      "${DESTDIR}/$test"
+      if [ "${QMAKE_HOST_OS}" == "Darwin" ]; then 
+          "${DESTDIR}/$test.app/Contents/MacOS/$test"
+      else 
+          "${DESTDIR}/$test"
+      fi
       ) || (echo -e '\n**** Test execution FAILED ****\n' && exit -2)
    fi
 

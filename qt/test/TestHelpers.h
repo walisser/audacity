@@ -5,11 +5,15 @@
 // MALLOC_SIZE
 // return size of a pointer allocated through malloc()
 //
-#ifdef Q_OS_UNIX
+#if defined(Q_OS_MACOS)
+#   include <malloc/malloc.h>
+#   define MALLOC_SIZE(ptr) malloc_size(ptr)
+
+#elif defined(Q_OS_UNIX)
 #   include <malloc.h>
 #   define MALLOC_SIZE(ptr) malloc_usable_size(ptr)
 
-#elif defined (Q_OS_WIN32) | defined(Q_OS_WIN64)
+#elif defined(Q_OS_WIN32) | defined(Q_OS_WIN64)
 #   define MALLOC_SIZE(ptr) _msize(ptr)
 
 #else

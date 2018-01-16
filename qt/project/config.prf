@@ -20,6 +20,7 @@
 # ARCH       == host system type (ia32,x86_64,armv7a,...)
 # HOST       == ID of the host/target (format: $$QMAKESPEC-$$ARCH)
 # CONFIG_LOG == config.log file path
+# QMAKE_SED  == command that behaves like "sed" with extended regexp 
 #
 # The following CONFIG variables can be set to change the build
 # --------------------------------------------------------------
@@ -68,11 +69,11 @@ defineTest(addLibrary) {
 
       versionCmd="echo unknown"
       exists($$srcdir/configure.ac) {
-         versionCmd="cat $$srcdir/configure.ac | grep AC_INIT | sed -r 's/.+\\[([0-9\\.]+)\\].+/\\1/'"
+         versionCmd="cat $$srcdir/configure.ac | grep AC_INIT | $$QMAKE_SED 's/.+\\[([0-9\\.]+)\\].+/\\1/'"
       }
       else:exists($$srcdir/CMakeLists.txt) {
          message("cmake things")
-         versionCmd="cat $$srcdir/CMakeLists.txt | grep set\\(PACKAGE_VERSION | sed -re 's/.*\"([0-9\.]+)\".*/\1/'"
+         versionCmd="cat $$srcdir/CMakeLists.txt | grep set\\(PACKAGE_VERSION | $$QMAKE_SED 's/.*\"([0-9\.]+)\".*/\1/'"
       }
       else: {
          warning(configLibrary $$name: unknown version scheme)
@@ -204,6 +205,13 @@ defineTest(fail) {
 defineTest(writeShellVars) {
    file=$$_PRO_FILE_PWD_/qmake.vars
 
+   # info from system running qmake
+   vars +="export QMAKE_HOST_ARCH='$$QMAKE_HOST.arch'"
+   vars +="export QMAKE_HOST_OS='$$QMAKE_HOST.os'"
+   vars +="export QMAKE_HOST_CPU_COUNT='$$QMAKE_HOST.cpu_count'"
+   vars +="export QMAKE_HOST_VERSION='$$QMAKE_HOST.version'"
+   vars +="export QMAKE_HOST_VERSION_STRING='$$QMAKE_HOST.version_string'"
+   
    vars +="export HOST='$$HOST'"
    vars +="export OBJECTS_DIR='$$relative_path($$OBJECTS_DIR)'"
    vars +="export MOC_DIR='$$relative_path($$MOC_DIR)'"
@@ -304,8 +312,8 @@ defineReplace(qtPlatformTargetSuffix) {
 
 message(PKG_CONFIG...$$PKG_CONFIG)
 
-LIBSRC=$$(HOME)/sw/audacity/lib-src
-BUILD_DIR=$$(HOME)/sw/audacity/qt/project
+LIBSRC=$$(HOME)/devel/au/audacity/lib-src
+BUILD_DIR=$$(HOME)/devel/au/audacity/qt/project
 PROJECT_DIR=$$BUILD_DIR
 
 # config options
@@ -336,9 +344,17 @@ win32 {
    CONFIG *= release_qt
 }
 
+# We need extended regexp, -r for GNU sed, -E for BSD
+# if we keep patterns simple they'll work on both
+QMAKE_SED="sed -r"
+isEqual(QMAKE_HOST.os, Darwin):QMAKE_SED="sed -E"
+
+SED_OUTPUT=$$system("echo sed is broken | $$QMAKE_SED 's/(is)\\ broken/\\1 working/'")
+isEqual(SED_OUTPUT,"sed is working")|error("sed command [$$QMAKE_SED] is broken")
+
 #
 # ./configure emulation...
-# - stuff configure outputs in CONFIG_H variables,
+# - stuff configure outputs in CONFIG_H variable,
 # - values cannot contain spaces, use COMMA for space
 # - endProject() writes them to build/$$HOST/qmake_config.h
 # - qmake_config.h is included from generic config.h
@@ -353,7 +369,7 @@ INCLUDEPATH = $$_PRO_FILE_PWD_
 # This way we do not have to compile any tests for most things
 # Space replaced with commas so we can more easily query things
 # TODO: this only works on gcc & clang on unixen
-CPP=$$system("$$QMAKE_CC $$QMAKE_CFLAGS -dM -E - </dev/null 2>&1 | sed -re s/\\\s/,/g")
+CPP=$$system("$$QMAKE_CC $$QMAKE_CFLAGS -dM -E - </dev/null 2>&1 | $$QMAKE_SED s/\\ /,/g")
 #message($$CPP)
 #log($$CPP)
 
@@ -426,7 +442,7 @@ message(Testing compiler...)
 include(./config/sizeof.prf)|error(Missing sizeof tests... run sizeof.py!)
 
 # TODO: add tests for these things
-!android:!win32 {
+!android:!win32:!macx {
    CONFIG_H += HAVE_ICONV,1
    CONFIG_H += HAVE_LANGINFO_CODESET,1
 }
