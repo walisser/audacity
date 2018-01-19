@@ -1,9 +1,10 @@
+#pragma once
 
-
+#include "core/SampleFormat.h"
 
 //
 // MALLOC_SIZE
-// return size of a pointer allocated through malloc()
+// return size of a pointer allocated through malloc()/new()
 //
 #if defined(Q_OS_MACOS)
 #   include <malloc/malloc.h>
@@ -20,7 +21,15 @@
 #   error portme
 #endif
 
-#ifdef Q_OS_UNIX
+// switch this on to help debugging
+//#define DEBUGGER_NEEDS_HELP 1
+#ifdef DEBUGGER_NEEDS_HELP
+#warning Some tests are disabled to aid debugging!
+#endif
+
+// FIXME: disable FileSizeLimiter when debugger is attached
+// because the signals are intercepted by debugger
+#if defined(Q_OS_UNIX) && !defined(DEBUGGER_NEEDS_HELP)
 #include <sys/resource.h>
 #include <signal.h>
 
@@ -59,6 +68,57 @@ private:
 class FileSizeLimiter
 {
 public:
-   bool apply(size_t bytes) { return false; }
+   bool apply(size_t bytes) { Q_UNUSED(bytes); return false; }
 };
 #endif
+
+
+// test arrays for having all one byte value
+static bool isValue(const void* ptr, size_t len, const uint8_t value)
+{
+   const uint8_t* b = (const uint8_t*)ptr;
+   while (len--)
+      if (*b++ != value)
+         return false;
+
+   return true;
+}
+
+static bool isZero(const void* ptr, size_t len) {
+   return isValue(ptr, len, 0);
+}
+
+static bool isOne(const void* ptr, size_t len) {
+   return isValue(ptr, len, 0xff);
+}
+
+static bool isEqual(const SampleBuffer& s1, const SampleBuffer& s2, sampleFormat fmt, size_t len)
+{
+    return memcmp(s1.ptr(), s2.ptr(), SAMPLE_SIZE(fmt)*len) == 0;
+}
+
+static bool isZero(const SampleBuffer& s1, sampleFormat fmt, int start, size_t len)
+{
+    return isZero((char*)s1.ptr() + start*SAMPLE_SIZE(fmt), SAMPLE_SIZE(fmt)*len);
+}
+
+static bool isOne(const SampleBuffer& s1, sampleFormat fmt, int start, size_t len)
+{
+    return isOne((char*)s1.ptr() + start*SAMPLE_SIZE(fmt), SAMPLE_SIZE(fmt)*len);
+}
+
+static void setByte(const SampleBuffer& s1, uint8_t value, sampleFormat fmt, int start, size_t len)
+{
+    memset((char*)s1.ptr()+ start*SAMPLE_SIZE(fmt), value, len*SAMPLE_SIZE(fmt));
+}
+
+static void setZero(const SampleBuffer& s1, sampleFormat fmt, int start, size_t len)
+{
+    setByte(s1, 0, fmt, start, len);
+}
+
+static void setOne(const SampleBuffer& s1, sampleFormat fmt, int start, size_t len)
+{
+    setByte(s1, 0xff, fmt, start, len);
+}
+

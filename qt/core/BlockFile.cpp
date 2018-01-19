@@ -69,7 +69,7 @@ out.
 #endif
 
 static const int headerTagLen = 20;
-static char headerTag[headerTagLen + 1] = "AudacityBlockFile112";
+static const char headerTag[headerTagLen + 1] = "AudacityBlockFile112";
 
 SummaryInfo::SummaryInfo(size_t samples)
 {
@@ -87,7 +87,7 @@ SummaryInfo::SummaryInfo(size_t samples)
    totalSummaryBytes = offset256 + (frames256 * bytesPerFrame);
 }
 
-ArrayOf<char> BlockFile::fullSummary;
+//ArrayOf<char> BlockFile::fullSummary;
 
 /// Initializes the base BlockFile data.  The block is initially
 /// unlocked and its reference count is 1.
@@ -135,7 +135,7 @@ auto BlockFile::GetFileName() const -> QString //-- GetFileNameResult
 ///sets the file name the summary info will be saved in.  threadsafe.
 void BlockFile::SetFileName(const QString &name)
 {
-   mFileName=std::move(name);
+   mFileName=name;
 }
 
 
@@ -181,26 +181,24 @@ bool BlockFile::IsLocked()
 /// @param buffer A buffer containing the sample data to be analyzed
 /// @param len    The length of the sample data
 /// @param format The format of the sample data.
-void *BlockFile::CalcSummary(samplePtr buffer, size_t len,
-                             sampleFormat format, ArrayOf<char> &cleanup)
+void BlockFile::CalcSummary(samplePtr buffer, size_t len,
+                             sampleFormat format, ArrayOf<char> &summaryData)
 {
    // Caller has nothing to deallocate
-   cleanup.reset();
+   //cleanup.reset();
 
-   fullSummary.reinit(mSummaryInfo.totalSummaryBytes);
+   summaryData.reinit(mSummaryInfo.totalSummaryBytes);
 
-   memcpy(fullSummary.get(), headerTag, headerTagLen);
+   memcpy(summaryData.get(), headerTag, headerTagLen);
 
-   float *summary64K = (float *)(fullSummary.get() + mSummaryInfo.offset64K);
-   float *summary256 = (float *)(fullSummary.get() + mSummaryInfo.offset256);
+   float *summary64K = (float *)(summaryData.get() + mSummaryInfo.offset64K);
+   float *summary256 = (float *)(summaryData.get() + mSummaryInfo.offset256);
 
    Floats fbuffer{ len };
    CopySamples(buffer, format,
                (samplePtr)fbuffer.get(), floatSample, len);
 
    CalcSummaryFromBuffer(fbuffer.get(), len, summary256, summary64K);
-
-   return fullSummary.get();
 }
 
 void BlockFile::CalcSummaryFromBuffer(const float *fbuffer, size_t len,
@@ -648,10 +646,10 @@ AliasBlockFile::AliasBlockFile(const QString &baseFileName,
                                sampleCount aliasStart,
                                size_t aliasLen, int aliasChannel):
    BlockFile {
-      baseFileName + ".auf", //--baseFileName.SetExt(wxT("auf")), std::move(baseFileName)),
+      (baseFileName.endsWith(".auf") ? baseFileName : baseFileName+".auf"),
       aliasLen
    },
-   mAliasedFileName(std::move(aliasedFileName)),
+   mAliasedFileName(aliasedFileName),
    mAliasStart(aliasStart),
    mAliasChannel(aliasChannel)
 {
@@ -664,8 +662,8 @@ AliasBlockFile::AliasBlockFile(const QString &existingSummaryFileName,
                                size_t aliasLen,
                                int aliasChannel,
                                float min, float max, float rms):
-   BlockFile{ std::move(existingSummaryFileName), aliasLen },
-   mAliasedFileName(std::move(aliasedFileName)),
+   BlockFile{ existingSummaryFileName, aliasLen },
+   mAliasedFileName(aliasedFileName),
    mAliasStart(aliasStart),
    mAliasChannel(aliasChannel)
 {
@@ -705,10 +703,9 @@ void AliasBlockFile::WriteSummary()
       return;
    }
 
-   ArrayOf<char> cleanup;
-   void *summaryData = BlockFile::CalcSummary(sampleData.ptr(), mLen,
-                                            floatSample, cleanup);
-   summaryFile.write((const char*)summaryData, mSummaryInfo.totalSummaryBytes);
+   ArrayOf<char> summaryData;
+   BlockFile::CalcSummary(sampleData.ptr(), mLen, floatSample, summaryData);
+   summaryFile.write((const char*)summaryData.get(), mSummaryInfo.totalSummaryBytes);
 }
 
 AliasBlockFile::~AliasBlockFile()
@@ -764,7 +761,7 @@ bool AliasBlockFile::ReadSummary(ArrayOf<char> &data)
 /// DirManager::EnsureSafeFilename().
 void AliasBlockFile::ChangeAliasedFileName(const QString &newAliasedFile)
 {
-   mAliasedFileName = std::move(newAliasedFile);
+   mAliasedFileName = newAliasedFile;
 }
 
 auto AliasBlockFile::GetSpaceUsage() const -> DiskByteCount

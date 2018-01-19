@@ -20,7 +20,7 @@
 # ARCH       == host system type (ia32,x86_64,armv7a,...)
 # HOST       == ID of the host/target (format: $$QMAKESPEC-$$ARCH)
 # CONFIG_LOG == config.log file path
-# QMAKE_SED  == command that behaves like "sed" with extended regexp 
+# QMAKE_SED  == command that behaves like "sed" with extended regexp
 #
 # The following CONFIG variables can be set to change the build
 # --------------------------------------------------------------
@@ -206,12 +206,13 @@ defineTest(writeShellVars) {
    file=$$_PRO_FILE_PWD_/qmake.vars
 
    # info from system running qmake
+   vars  =""
    vars +="export QMAKE_HOST_ARCH='$$QMAKE_HOST.arch'"
    vars +="export QMAKE_HOST_OS='$$QMAKE_HOST.os'"
    vars +="export QMAKE_HOST_CPU_COUNT='$$QMAKE_HOST.cpu_count'"
    vars +="export QMAKE_HOST_VERSION='$$QMAKE_HOST.version'"
    vars +="export QMAKE_HOST_VERSION_STRING='$$QMAKE_HOST.version_string'"
-   
+
    vars +="export HOST='$$HOST'"
    vars +="export OBJECTS_DIR='$$relative_path($$OBJECTS_DIR)'"
    vars +="export MOC_DIR='$$relative_path($$MOC_DIR)'"
@@ -219,6 +220,7 @@ defineTest(writeShellVars) {
 
    write_file($$file, vars);
    message(wrote $$file);
+   return(true)
 }
 
 ###
@@ -258,8 +260,8 @@ defineTest(endProject) {
       !silent:message($$var=$$eval($$$$var))
 
       section=$$escape_expand(\\n)$$var --------------------------------
-      write_file($$CONFIG_LOG,section,append))
-      write_file($$CONFIG_LOG,$$var,append))
+      write_file($$CONFIG_LOG, section, append))
+      write_file($$CONFIG_LOG, $$var, append))
    }
 
    # do the foo for ./configure emulation
@@ -285,6 +287,8 @@ defineTest(endProject) {
    #    message(VAR=$$var)
    #    message("   "$$eval($$var))
    #}
+
+   return(true)
 }
 
 ###
@@ -312,9 +316,9 @@ defineReplace(qtPlatformTargetSuffix) {
 
 message(PKG_CONFIG...$$PKG_CONFIG)
 
-LIBSRC=$$(HOME)/devel/au/audacity/lib-src
-BUILD_DIR=$$(HOME)/devel/au/audacity/qt/project
-PROJECT_DIR=$$BUILD_DIR
+LIBSRC=$$absolute_path(../../lib-src)
+PROJECT_DIR=$$absolute_path(.)
+BUILD_DIR=$$PROJECT_DIR
 
 # config options
 #CONFIG += local_libs
@@ -380,7 +384,7 @@ ARCH = unknown
 cppDefines(__i386__)|cppDefines(__x86_64__) {
 
    #message(x86 architecture detected)
-   CONFIG_H += HAVE_X86INTRIN_H
+   CONFIG_H += HAVE_X86INTRIN_H,1
 
         cppDefines(__x86_64__): ARCH = x86_64
    else:cppDefines(__i386__):   ARCH = ia32

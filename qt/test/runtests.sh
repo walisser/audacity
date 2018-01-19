@@ -11,11 +11,16 @@ ADB=${ANDROID_SDK_ROOT}/platform-tools/adb
 
 if [ "$1" == "-clean" ]; then
    rm -rf android*.json
+   rm -rf object_script*
+   rm -rf Makefile
+   rm -rf qmake.vars .qmake.stash
    rm -rf build
    exit 0
 elif [ "$1" == "-logcat" ]; then
 
-   multitail -l "${ADB} -s emulator-5554 logcat -v color 'QTestLib:*' '*:S'" -l "${ADB} -s 092a33f3 logcat -v color 'QTestLib:*' '*:S'"
+   FILTER=
+   #FILTER='QTestLib:*' '*:S'
+   multitail -l "${ADB} -s emulator-5554 logcat ${FILTER}" -l "${ADB} -s 092a33f3 logcat ${FILTER}"
    exit 0
 elif [ "$1" == "-coverage" ]; then
 
@@ -123,7 +128,7 @@ for x in ${TESTS}; do
       # FIXME: don't redeploy if nothing changed
       echo "Deploying $test..." &&
 
-      ${ANDROID_DEPLOY_QT} --input *$test*.json --output "${DESTDIR}/$test/" --gradle --install --device "${DEVICE}" > android-deploy.log 2>&1 &&
+      time ${ANDROID_DEPLOY_QT} --deployment bundled --input *$test*.json --output "${DESTDIR}/$test/" --gradle --install --device "${DEVICE}" && #> android-deploy.log 2>&1 &&
 
       echo "Running $test..." &&
 
@@ -155,9 +160,9 @@ for x in ${TESTS}; do
       # ...not by choice but because of PCH bug
       (
       source qmake.vars &&
-      if [ "${QMAKE_HOST_OS}" == "Darwin" ]; then 
+      if [ "${QMAKE_HOST_OS}" == "Darwin" ]; then
           "${DESTDIR}/$test.app/Contents/MacOS/$test"
-      else 
+      else
           "${DESTDIR}/$test"
       fi
       ) || (echo -e '\n**** Test execution FAILED ****\n' && exit -2)

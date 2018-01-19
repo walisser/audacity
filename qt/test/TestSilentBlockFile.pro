@@ -1,6 +1,9 @@
 include(config_pre.prf)
 
+HEADERS += TestBlockFile.h
+
 SOURCES += \
+   TestBlockFile.cpp \
    ../core/BlockFile.cpp \
    ../core/SampleFormat.cpp \
    ../core/Dither.cpp \

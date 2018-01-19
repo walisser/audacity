@@ -222,11 +222,12 @@ bool SimpleBlockFile::WriteSimpleBlockFile(
    header.channels = 1;
 
    // Write the file
-   ArrayOf<char> cleanup;
+   ArrayOf<char> summary;
    if (!summaryData)
-      summaryData = /*BlockFile::*/CalcSummary(sampleData, sampleLen, format, cleanup);
-      //mchinen:allowing virtual override of calc summary for ODDecodeBlockFile.
-      // PRL: cleanup fixes a possible memory leak!
+   {
+      CalcSummary(sampleData, sampleLen, format, summary);
+      summaryData = summary.get();
+   }
 
    size_t nBytesToWrite = sizeof(header);
    size_t nBytesWritten = file.write((const char*)&header, nBytesToWrite);
@@ -468,23 +469,17 @@ BlockFilePtr SimpleBlockFile::BuildFromXML(DirManager &dm, const QStringMap &att
    float min = 0.0f, max = 0.0f, rms = 0.0f;
    size_t len = 0;
    double dblValue;
-   //--long nValue;
+   long nValue;
 
    for (auto it=attrs.constBegin();
         it != attrs.constEnd();
         ++it)
-   {      
-   //--while(*attrs)
-   //--{
-      //--const wxChar *attr =  *attrs++;
-      //--const wxChar *value = *attrs++;
+   {
       const QString &key = it.key();
       const QString &value = it.value();
       
-      //--if (!value)
-      //--   break;
+      bool ok = false;
 
-      //--const wxString strValue = value;
       if (key == "filename" &&
             // Can't use XMLValueChecker::IsGoodFileName here, but do part of its test.
             XMLValueChecker::IsGoodFileString(value) &&
@@ -494,17 +489,14 @@ BlockFilePtr SimpleBlockFile::BuildFromXML(DirManager &dm, const QStringMap &att
             // Make sure fileName is back to uninitialized state so we can detect problem later.
             fileName.clear();
       }
-      else if (key == "len")
+      else if (key == "len" &&
+               XMLValueChecker::IsGoodInt(value) &&
+               (nValue = value.toLong(&ok))>0 && ok)
       {
-         //--      XMLValueChecker::IsGoodInt(value) && value.toLong(&ok, &nValue) &&
-         //--      nValue > 0)
-         //--len = nValue;
-         bool ok = false;
-         long nValue = value.toLong(&ok);
-         if (ok && nValue > 0)
-            len = nValue;
+         len = nValue;
       }
-      else if (XMLValueChecker::IsGoodString(value) && Internat::CompatibleToDouble(value, &dblValue))
+      else if (XMLValueChecker::IsGoodString(value) &&
+               (dblValue=value.toDouble(&ok), ok))
       {  
          // double parameters
          if (key == "min")

@@ -10,12 +10,17 @@ SOURCES += \
    ../core/FileException.cpp \
    ../core/AudacityException.cpp \
    ../core/FileFormats.cpp \
-   ../core/blockfile/SimpleBlockFile.cpp \
    ../core/xml/XMLTagHandler.cpp \
    ../core/xml/XMLWriter.cpp \
-   ../core/xml/XMLFileReader.cpp
+   ../core/xml/XMLFileReader.cpp \
+   ../core/blockfile/PCMAliasBlockFile.cpp \
+   ../core/blockfile/ODPCMAliasBlockFile.cpp \
+   ../core/blockfile/NotYetAvailableException.cpp
 
 addLibrary(sndfile)|error(Failed to find sndfile)
 addLibrary(expat)|error(Failed to find expat)
 
 include(config_post.prf)
+
+HEADERS += \
+    testblockfile.h

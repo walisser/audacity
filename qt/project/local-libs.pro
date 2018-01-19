@@ -1,7 +1,5 @@
 TEMPLATE=subdirs
 
-CONFIG *= local_libs
-
 SUBDIRS= \
    ogg \
    vorbis \
@@ -22,3 +20,4 @@ vorbisfile.depends = ogg
 vorbisenc.depends = ogg
 flacenc.depends = flac ogg
 sndfile.depends = ogg vorbis vorbisenc vorbisfile flac
+
