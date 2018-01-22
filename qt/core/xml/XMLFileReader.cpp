@@ -19,9 +19,9 @@
 
 //#include <string.h>
 
-//#include "../Internat.h"
 #include "XMLFileReader.h"
 #include "XMLTagHandler.h"
+#include "../Internat.h"
 
 #include "expat.h"
 

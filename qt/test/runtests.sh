@@ -37,6 +37,10 @@ elif [ "$1" == "-coverage" ]; then
       #lcov --list-full-path -e ${1}/coverage.info ${2} -o ${1}/coverage-stripped.info
 
       genhtml --title "audacity/qt/test/${DESTDIR}" --demangle-cpp -o "${DESTDIR}/lcov" "${DESTDIR}/lcov/coverage.info"
+
+      echo
+      echo "file://${PWD}/${DESTDIR}/lcov/index.html"
+      echo
    )
 
    exit 0

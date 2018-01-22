@@ -26,6 +26,8 @@ virtual void buildFromXml(DirManager& dm, const QString& tag, const QStringMap& 
       qFatal("Unhandled block file type");
 }
 
+private Q_SLOTS:
+
 void initTestcase()
 {
    _implementation = this;

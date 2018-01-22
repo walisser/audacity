@@ -6,9 +6,10 @@
 //
 //
 
-//#include "Audacity.h"
+//--#include "Audacity.h"
 #include "FileException.h"
-//#include "Prefs.h"
+//--#include "Internat.h"
+//--#include "Prefs.h"
 
 FileException::~FileException()
 {
@@ -73,7 +74,6 @@ _("Audacity successfully wrote a file in %1 but failed to rename it as %2.");
 
    //--return wxString::Format(
    //--   format, target, renameTarget.GetFullName() );
-   //
    format = format.arg(target);
    if (format.contains("%2"))
       format = format.arg(renameTarget);

@@ -34,15 +34,16 @@
 
 *//*******************************************************************/
 
-//#include <wx/intl.h>
-//#include <math.h>
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <string.h>
+//--#include <wx/intl.h>
+//--#include <math.h>
+//--#include <stdio.h>
+//--#include <stdlib.h>
+//--#include <string.h>
 
 #include "SampleFormat.h"
-//#include "Prefs.h"
+//--#include "Prefs.h"
 #include "Dither.h"
+#include "Internat.h"
 
 // TODO: CopySamples is not reentrant unless dither isn't used
 static Dither::DitherType gLowQualityDither = Dither::none;
@@ -76,19 +77,19 @@ QString GetSampleFormatStr(sampleFormat format)
 }
 
 // TODO: Risky?  Assumes 0.0f is represented by 0x00000000;
-void ClearSamples(samplePtr src, sampleFormat format,
+void ClearSamples(samplePtr dst, sampleFormat format,
                   size_t start, size_t len)
 {
    auto size = SAMPLE_SIZE(format);
-   memset(src + start*size, 0, len*size);
+   memset(dst + start*size, 0, len*size);
 }
 
-void ReverseSamples(samplePtr src, sampleFormat format,
+void ReverseSamples(samplePtr dst, sampleFormat format,
                   int start, int len)
 {
    auto size = SAMPLE_SIZE(format);
-   samplePtr first = src + start * size;
-   samplePtr last = src + (start + len - 1) * size;
+   samplePtr first = dst + start * size;
+   samplePtr last = dst + (start + len - 1) * size;
    auto fixedSize = SAMPLE_SIZE(floatSample);
    Q_ASSUME(size >= 0 && size <= fixedSize);
    char temp[fixedSize];

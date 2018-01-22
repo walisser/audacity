@@ -134,8 +134,8 @@ bool XMLValueChecker::IsGoodIntForRange(const QString & str, const QString & str
 
    if( lenStrInt < 1 )
       return false;
-   int offset = (strInt[0] == '-') ?1:0;
-   if( (int)lenStrInt <= offset )
+   size_t offset = (strInt[0] == '-') ?1:0;
+   if( lenStrInt <= offset )
       return false;// string too short, no digits in it.
 
    if (lenStrInt > (lenMAXABS + offset))
@@ -147,7 +147,7 @@ bool XMLValueChecker::IsGoodIntForRange(const QString & str, const QString & str
           return false; // not a digit
 
    // All chars were digits.
-   if( (lenStrInt - offset) < lenMAXABS )
+   if( lenStrInt < (lenMAXABS + offset) )
       return true; // too few digits to overflow.
 
    // Numerical part is same length as strMAXABS
@@ -194,24 +194,24 @@ bool XMLValueChecker::IsValidSampleFormat(const int nValue)
 
 bool XMLTagHandler::ReadXMLTag(const char *tag, const char **attrs)
 {
-   //wxArrayString tmp_attrs;
+   //--wxArrayString tmp_attrs;
 
-   //while (*attrs) {
-   //   const char *s = *attrs++;
-   //   tmp_attrs.Add(UTF8CTOWX(s));
-   //}
+   //--while (*attrs) {
+   //--   const char *s = *attrs++;
+   //--   tmp_attrs.Add(UTF8CTOWX(s));
+   //--}
 
 // JKC: Previously the next line was:
 // const char **out_attrs = NEW char (const char *)[tmp_attrs.GetCount()+1];
 // however MSVC doesn't like the constness in this position, so this is now
 // added by a cast after creating the array of pointers-to-non-const chars.
-   //auto out_attrs = std::make_unique<const wxChar *[]>(tmp_attrs.GetCount() + 1);
-   //for (size_t i=0; i<tmp_attrs.GetCount(); i++) {
-   //   out_attrs[i] = tmp_attrs[i].c_str();
-   // }
-   //out_attrs[tmp_attrs.GetCount()] = 0;
+   //--auto out_attrs = std::make_unique<const wxChar *[]>(tmp_attrs.GetCount() + 1);
+   //--for (size_t i=0; i<tmp_attrs.GetCount(); i++) {
+   //--   out_attrs[i] = tmp_attrs[i];
+   //-- }
+   //--out_attrs[tmp_attrs.GetCount()] = 0;
 
-   //bool result = HandleXMLTag(UTF8CTOWX(tag).c_str(), out_attrs.get());
+   //--bool result = HandleXMLTag(UTF8CTOWX(tag), out_attrs.get());
 
    QStringMap map;
 
@@ -227,15 +227,15 @@ bool XMLTagHandler::ReadXMLTag(const char *tag, const char **attrs)
 
 void XMLTagHandler::ReadXMLEndTag(const char *tag)
 {
-   HandleXMLEndTag(QString::fromUtf8(tag));//UTF8CTOWX(tag).c_str());
+   HandleXMLEndTag(QString::fromUtf8(tag));
 }
 
 void XMLTagHandler::ReadXMLContent(const char *s, int len)
 {
-   HandleXMLContent(QString::fromUtf8(s, len));//(s, wxConvUTF8, len));
+   HandleXMLContent(QString::fromUtf8(s, len));
 }
 
 XMLTagHandler *XMLTagHandler::ReadXMLChild(const char *tag)
 {
-   return HandleXMLChild(QString::fromUtf8(tag));//UTF8CTOWX(tag).c_str());
+   return HandleXMLChild(QString::fromUtf8(tag));
 }

@@ -17,17 +17,17 @@ information.
 
 #include "Audacity.h"
 #include "MemoryX.h"
-//#include <wx/arrstr.h>
-//#include <wx/intl.h>
+//--#include <wx/arrstr.h>
+//--#include <wx/intl.h>
 #include "sndfile.h"
+//--#include "widgets/ErrorDialog.h"
 
 #ifndef SNDFILE_1
 #error Requires libsndfile 1.0 or higher
 #endif
 
 #include "FileFormats.h"
-
-//#include "Internat.h"
+#include "Internat.h"
 
 //
 // enumerating headers
@@ -282,7 +282,6 @@ OSType sf_header_mactype(int format)
 
 #endif // __WXMAC__
 
-//#include <wx/msgdlg.h>
 //--ODLock libSndFileMutex;
 QMutex gLibSndFileMutex;
 

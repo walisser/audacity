@@ -226,41 +226,9 @@ void QuitAudacity();
 #define JUST_BELOW_MAX_AUDIO (1.f - 1.f/(1<<14))
 
 
-#ifndef IN_RC
-//#include <wx/defs.h>
-//#include <wx/string.h>
-//class QString;
-
-extern const QString& GetCustomTranslation(const QString& str1 );
-extern const QString& GetCustomSubstitution(const QString& str1 );
-
-// Marks strings for extraction only...must use wxGetTranslation() to translate.
-#define XO(s)  wxT(s)
-
-// Marks string for substitution only.
-#define _TS( s ) GetCustomSubstitution( s )
 
 
-#define WXINTL_NO_GETTEXT_MACRO
 
-#ifdef wxPLURAL
-#undef wxPLURAL
-#endif
-
-// Note:  The strings will go to the .pot file (do not use _(...)).
-#define wxPLURAL(sing, plur, n)  wxGetTranslation((sing), (plur), n)
-
-
-#ifdef _
-#undef _
-#endif
-
-// PORTME translations
-//#define _(s) GetCustomTranslation((s))
-#define _(s) (s)
-#define wxT(s) (s)
-
-#endif // !IN_RC
 
 // This renames a good use of this C++ keyword that we don't need to review when hunting for leaks.
 #define PROHIBITED = delete

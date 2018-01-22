@@ -54,8 +54,8 @@ out.
 //#include "MemoryX.h"
 #include "sndfile.h"
 #include "FileFormats.h"
-#include "FileException.h"
 //#include "AudacityApp.h"
+#include "FileException.h"
 
 // msmeyer: Define this to add debug output via printf()
 //#define DEBUG_BLOCKFILE
@@ -63,7 +63,7 @@ out.
 #ifdef DEBUG_BLOCKFILE
 #define BLOCKFILE_DEBUG_OUTPUT(op, i) \
    wxPrintf(wxT("[BlockFile %x %s] %s: %i\n"), (unsigned)this, \
-            mFileName.GetFullName().c_str(), wxT(op), i);
+            mFileName.GetFullName(), wxT(op), i);
 #else
 #define BLOCKFILE_DEBUG_OUTPUT(op, i)
 #endif
@@ -560,7 +560,7 @@ size_t BlockFile::CommonReadData(
       else {
          auto channels = info.channels;
          Q_ASSERT(channels >= 1);
-         Q_ASSERT(channel < channels);
+         Q_ASSERT(channel < (unsigned int)channels);
 
          if (channels == 1 &&
              format == int16Sample &&
@@ -579,7 +579,7 @@ size_t BlockFile::CommonReadData(
             // libsndfile gave us the 3 byte sample in the 3 most
             // significant bytes -- we want it in the 3 least
             // significant bytes.
-            int32_t *intPtr = (int32_t *)data;
+            int *intPtr = (int *)data;
             for( size_t i = 0; i < framesRead; i++ )
                intPtr[i] = intPtr[i] >> 8;
          }

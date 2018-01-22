@@ -12,37 +12,34 @@
 #define _DIRMANAGER_
 
 #include "MemoryX.h"
+//--#include <wx/list.h>
+//--#include <wx/string.h>
+//--#include <wx/filename.h>
+//--#include <wx/hashmap.h>
+//--#include <wx/utils.h>
 
-//#include <wx/list.h>
-//#include <wx/string.h>
-//#include <wx/filename.h>
-//#include <wx/hashmap.h>
-//#include <wx/utils.h>
-
-//#include "audacity/Types.h"
+//--#include "audacity/Types.h"
 #include "xml/XMLTagHandler.h"
-//#include "wxFileNameWrapper.h"
+//--#include "wxFileNameWrapper.h"
+#ifndef __AUDACITY_OLD_STD__
+#include <unordered_map>
+#endif
 
 class wxHashTable;
 class BlockArray;
 class BlockFile;
-class SequenceTest;
 
 #define FSCKstatus_CLOSE_REQ 0x1
 #define FSCKstatus_CHANGED   0x2
 #define FSCKstatus_SAVE_AUP  0x4 // used in combination with FSCKstatus_CHANGED
 
-//--WX_DECLARE_HASH_MAP(int, int, wxIntegerHash, wxIntegerEqual, DirHash);
-typedef QHash<int, int> DirHash;
+using DirHash = std::unordered_map<int, int>;
 
 class BlockFile;
 using BlockFilePtr = std::shared_ptr<BlockFile>;
 
-//--WX_DECLARE_HASH_MAP(QString, std::weak_ptr<BlockFile>, QStringHash,
-//--                    QStringEqual, BlockHash);
-typedef QHash<QString, std::weak_ptr<BlockFile>> BlockHash;
+using BlockHash = std::unordered_map< QString, std::weak_ptr<BlockFile> >;
 
-//--wxMemorySize GetFreeMemory();
 uint64_t GetFreeMemory();
 
 enum {
@@ -237,7 +234,6 @@ class PROFILE_DLL_API DirManager final : public XMLTagHandler {
    static int numDirManagers;
    static bool dontDeleteTempFiles;
 
-   friend class SequenceTest;
 };
 
 #endif

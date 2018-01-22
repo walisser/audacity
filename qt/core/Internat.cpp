@@ -20,17 +20,18 @@ and on Mac OS X for the filesystem.
 
 *//*******************************************************************/
 
-//#include <wx/msgdlg.h>
-//#include <wx/log.h>
-//#include <wx/intl.h>
-//#include <wx/filename.h>
+//--#include <wx/log.h>
+//--#include <wx/intl.h>
+//--#include <wx/filename.h>
 
 #include <locale.h>
 #include <math.h> // for pow()
 
-#include "Internat.h"
-//#include "Experimental.h"
-//#include "FileNames.h"
+//--#include "Experimental.h"
+//--#include "FileNames.h"
+//--#include "widgets/ErrorDialog.h"
+//--#include "Internat.h"
+
 
 // in order for the static member variables to exist, they must appear here
 // (_outside_) the class definition, in order to be allocated some storage.
@@ -248,7 +249,7 @@ char *Internat::VerifyFilename(const QString &s, bool input)
       wxFileName ff(name);
       QString ext;
       while ((char *) (const char *)name.mb_str() == NULL) {
-         wxMessageBox(_("The specified filename could not be converted due to Unicode character use."));
+         AudacityMessageBox(_("The specified filename could not be converted due to Unicode character use."));
 
          ext = ff.GetExt();
          name = FileNames::SelectFile(FileNames::Operation::_None,

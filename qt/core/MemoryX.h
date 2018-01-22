@@ -7,7 +7,6 @@
 #include "Audacity.h"
 
 #ifndef safenew
-#error Unreachable
 #define safenew new
 #endif
 
@@ -36,7 +35,14 @@ using std::isinf;
 
 // To define function
 #include <tr1/functional>
+// To define unordered_set
+#include <tr1/unordered_set>
+// To define unordered_map and hash
+#include <tr1/unordered_map>
 namespace std {
+   using std::tr1::unordered_set;
+   using std::tr1::hash;
+   using std::tr1::unordered_map;
    using std::tr1::function;
    using std::tr1::shared_ptr;
    using std::tr1::weak_ptr;
@@ -54,7 +60,7 @@ namespace std {
    template<typename X> struct default_delete
    {
       default_delete() {}
-      
+
       // Allow copy from other deleter classes
       template<typename Y>
       default_delete(const default_delete<Y>& that)
@@ -66,13 +72,13 @@ namespace std {
          static_assert((static_cast<X*>(YPtr{}), true),
                        "Pointer types not convertible");
       }
-      
+
       inline void operator() (void *p) const
       {
          delete static_cast<X*>(p);
       }
    };
-   
+
    // Specialization for arrays
    template<typename X> struct default_delete<X[]>
    {
@@ -122,7 +128,7 @@ namespace std {
    public:
       // Default constructor
       unique_ptr() {}
-      
+
       // Implicit constrution from nullptr
       unique_ptr(nullptr_t) {}
 
@@ -177,7 +183,7 @@ namespace std {
          get_deleter() = move(that.get_deleter());
          return *this;
       }
-      
+
       D& get_deleter() { return *this; }
       const D& get_deleter() const { return *this; }
 
@@ -223,7 +229,7 @@ namespace std {
 
       // Implicit constrution from nullptr
       unique_ptr(nullptr_t) {}
-      
+
       // Explicit constructor from pointer
       explicit unique_ptr(T *p_)
          : p{ p_ } {}
@@ -255,7 +261,7 @@ namespace std {
          p = nullptr;
          return *this;
       }
-      
+
       D& get_deleter() { return *this; }
       const D& get_deleter() const { return *this; }
 
@@ -383,6 +389,9 @@ namespace std {
    }
 }
 
+#else
+// To define function
+#include <functional>
 #endif
 
 #if !(_MSC_VER >= 1800 || __cplusplus >= 201402L)
@@ -895,12 +904,26 @@ struct IteratorRange : public std::pair<Iterator, Iterator> {
    template <typename T> iterator find(const T &t) const
    { return std::find(this->begin(), this->end(), t); }
 
+   template <typename T> long index(const T &t) const
+   {
+      auto iter = this->find(t);
+      if (iter == this->end())
+         return -1;
+      return std::distance(this->begin(), iter);
+   }
    template <typename T> bool contains(const T &t) const
    { return this->end() != this->find(t); }
 
    template <typename F> iterator find_if(const F &f) const
    { return std::find_if(this->begin(), this->end(), f); }
 
+   template <typename F> long index_if(const F &f) const
+   {
+      auto iter = this->find_if(f);
+      if (iter == this->end())
+         return -1;
+      return std::distance(this->begin(), iter);
+   }
    // to do: use std::all_of, any_of, none_of when available on all platforms
    template <typename F> bool all_of(const F &f) const
    {
@@ -1045,9 +1068,6 @@ make_iterator_range( const Container &container )
 }
 
 
-// 1st Jan 2018
-// Commented out by James Crook until such time as we migrate to a newer MSVC.
-#if OK_IN_MSVC_2013
 /*
  * Transform an iterator sequence, as another iterator sequence
  */
@@ -1137,6 +1157,26 @@ make_value_transform_iterator(const Iterator &iterator, Function function)
    using NewFunction = value_transformer<Function, Iterator>;
    return { iterator, NewFunction{ function } };
 }
+// For using std::unordered_map on wxString
+namespace std
+{
+#ifdef __AUDACITY_OLD_STD__
+   namespace tr1
+   {
 #endif
+      template<typename T> struct hash;
+      template<> struct hash< QString > {
+         size_t operator () (const QString &str) const // noexcept
+         {
+            //--auto stdstr = str.ToStdWstring(); // no allocations, a cheap fetch
+            auto stdstr = str.toStdWString(); // TODO: QString::utf16() is free, will it work?
+            using Hasher = hash< decltype(stdstr) >;
+            return Hasher{}( stdstr );
+         }
+      };
+#ifdef __AUDACITY_OLD_STD__
+   }
+#endif
+}
 
 #endif // __AUDACITY_MEMORY_X_H__

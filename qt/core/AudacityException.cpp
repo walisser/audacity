@@ -19,11 +19,11 @@ got to show.
 
 *//********************************************************************/
 
-//#include "Audacity.h"
+//--#include "Audacity.h"
 #include "AudacityException.h"
 
-//#include <wx/atomic.h>
-//#include <wx/msgdlg.h>
+//--#include <wx/atomic.h>
+//--#include "widgets/ErrorDialog.h"
 
 AudacityException::~AudacityException()
 {
@@ -104,11 +104,11 @@ void MessageBoxException::DelayedHandlerAction()
       QString msg = QString("%1: %2").arg(caption).arg(ErrorMessage());
       
       if ( !sOutstandingMessages.deref() )
-         //::wxMessageBox(
-         //   ErrorMessage(),
-         //   caption.IsEmpty() ? wxMessageBoxCaptionStr : caption,
-         //   wxICON_ERROR
-         //);
+         //--::AudacityMessageBox(
+         //--   ErrorMessage(),
+         //--   caption.IsEmpty() ? wxMessageBoxCaptionStr : caption,
+         //--   wxICON_ERROR
+         //--);
          qCritical("%s", qPrintable(msg));
       else
          qWarning("%s", qPrintable(msg));
