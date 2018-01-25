@@ -106,7 +106,7 @@ auto ODPCMAliasBlockFile::GetSpaceUsage() const -> DiskByteCount
 /// so that the unsaved ODPCMAliasBlockfiles are deleted upon exit
 void ODPCMAliasBlockFile::Lock()
 {
-   if(IsSummaryAvailable()&&mHasBeenSaved)
+   if(IsSummaryAvailable() && mHasBeenSaved)
       PCMAliasBlockFile::Lock();
 }
 
@@ -118,7 +118,6 @@ void ODPCMAliasBlockFile::CloseLock()
       PCMAliasBlockFile::Lock();
 }
 
-
 /// unlocks the blockfile only if it has a file that exists.  This needs to be done
 /// so that the unsaved ODPCMAliasBlockfiles are deleted upon exit
 void ODPCMAliasBlockFile::Unlock()
@@ -126,7 +125,6 @@ void ODPCMAliasBlockFile::Unlock()
    if(IsSummaryAvailable() && IsLocked())
       PCMAliasBlockFile::Unlock();
 }
-
 
 /// Gets extreme values for the specified region
 auto ODPCMAliasBlockFile::GetMinMaxRMS(
@@ -403,7 +401,7 @@ void ODPCMAliasBlockFile::WriteSummary()
                qPrintable(summaryFile.fileName()));
 
       throw FileException{
-         FileException::Cause::Read, summaryFile.fileName() };
+         FileException::Cause::Open, summaryFile.fileName() };
    }
 
    ArrayOf<char> summaryData;
@@ -411,7 +409,8 @@ void ODPCMAliasBlockFile::WriteSummary()
 
    qint64 len = mSummaryInfo.totalSummaryBytes;
 
-   if (len != summaryFile.write((const char*)summaryData.get(), len))
+   if (len != summaryFile.write((const char*)summaryData.get(), len) ||
+       !summaryFile.flush())
       throw FileException{
          FileException::Cause::Write, summaryFile.fileName() };
 

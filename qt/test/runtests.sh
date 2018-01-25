@@ -120,6 +120,10 @@ for x in ${TESTS}; do
 
 done
 
+RED='\u001b[0;31m'
+GREEN='\u001b[0;32m'
+FG='\u001b[0m' # No Color
+
 for x in ${TESTS}; do
 
    test=`echo $x | sed 's/\.pro//'`
@@ -149,14 +153,14 @@ for x in ${TESTS}; do
       # clear log
       ${ADB} -s "${DEVICE}" logcat -c
 
-      ) || (echo -e '\n**** Test deployment FAILED ****\n' && exit -2)
+      ) || (echo -e "\n**** Test execution ${RED}FAILED${FG} ****\n" && exit -2)
 
    elif [ "${BUILD}" == "windows" ]; then
 
       (
       source qmake.vars &&
       wine64 "${DESTDIR}/$test.exe"
-      ) || (echo -e '\n**** Test execution FAILED ****\n' && exit -2)
+      ) || (echo -e "\n**** Test execution ${RED}FAILED${FG} ****\n" && exit -2)
 
    else
 
@@ -169,9 +173,9 @@ for x in ${TESTS}; do
       else
           "${DESTDIR}/$test"
       fi
-      ) || (echo -e '\n**** Test execution FAILED ****\n' && exit -2)
+      ) || (echo -e "\n**** Test execution ${RED}FAILED${FG} ****\n" && exit -2)
    fi
 
 done
 
-echo -e '\n**** All tests completed ****\n'
+echo -e "\n**** All tests ${GREEN}PASSED${FG} ****\n"

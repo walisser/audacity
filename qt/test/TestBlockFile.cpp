@@ -139,11 +139,22 @@ void TestBlockFile::makeTestDataFloat(const QString& filename_, TestData& t)
    QCOMPARE(samplePtr[t.numSamples-1], 1.0f);
 }
 
-void TestBlockFile::checkLockUnlock(BlockFile& bf)
+void TestBlockFile::checkLockUnlock(BlockFile& bf, ExpectFailure fails)
 {
    QVERIFY( ! bf.IsLocked() );
    bf.Lock();
-   QVERIFY(   bf.IsLocked() );
+   if (!fails)
+      QVERIFY( bf.IsLocked() );
+   bf.Unlock();
+   QVERIFY( ! bf.IsLocked() );
+}
+
+void TestBlockFile::checkCloseLock(BlockFile& bf, ExpectFailure fails)
+{
+   QVERIFY( ! bf.IsLocked() );
+   bf.CloseLock();
+   if (!fails)
+      QVERIFY( bf.IsLocked() );
    bf.Unlock();
    QVERIFY( ! bf.IsLocked() );
 }
@@ -290,6 +301,16 @@ void TestBlockFile::checkCopy(BlockFile& bf, bool isSilentBlockFile)
 
    // should not exist yet on disk
    QVERIFY( ! QFileInfo(copyName).exists() );
+}
+
+void TestBlockFile::checkSetFileName(BlockFile& bf)
+{
+   QString oldName = bf.GetFileName();
+   QString newName = oldName+".new";
+   bf.SetFileName(newName);
+   QVERIFY(bf.GetFileName() == newName);
+   bf.SetFileName(oldName);
+   QVERIFY(bf.GetFileName() == oldName);
 }
 
 void TestBlockFile::checkRecover(BlockFile& bf)

@@ -43,6 +43,7 @@ void testSilentBlockFile()
       QVERIFY( bf.GetSpaceUsage() == 0);
 
       checkLockUnlock(bf);
+      checkCloseLock(bf);
 
       checkGetMinMaxRMS(bf, t);
       checkGetMinMaxRMSOverflows(bf, t);
@@ -56,6 +57,7 @@ void testSilentBlockFile()
       checkReadSummary(64*1024, bf, t);
 
       checkCopy(bf, true);
+      checkSetFileName(bf);
 
       // Recover() does nothing, there's no data file
       bf.Recover();

@@ -65,9 +65,17 @@ protected:
       EXPECT_NO_THROW = false
    } ExpectThrow;
 
+   typedef enum {
+      EXPECT_FAILURE = true,
+      EXPECT_NO_FAILURE = false
+   } ExpectFailure;
+
+
    // Note: methods named checkXXX instead of testXXX because they
    // are not callable by the test driver (due to taking arguments)
-   void checkLockUnlock(BlockFile& bf);
+   void checkLockUnlock(BlockFile& bf, ExpectFailure fails=EXPECT_NO_FAILURE);
+
+   void checkCloseLock(BlockFile& bf, ExpectFailure fails=EXPECT_NO_FAILURE);
 
    void checkGetMinMaxRMS(BlockFile& bf, TestData&t,
                           ExpectDefault defaults = EXPECT_NO_DEFAULTS,
@@ -86,6 +94,8 @@ protected:
                          ExpectDefault defaults = EXPECT_NO_DEFAULTS);
 
    void checkCopy(BlockFile& bf, bool isSilentBlockFile=false);
+
+   void checkSetFileName(BlockFile& bf);
 
    void checkRecover(BlockFile& bf);
 

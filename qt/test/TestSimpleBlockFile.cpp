@@ -70,6 +70,8 @@ void testSimpleBlockFile(QString fileName, TestData &t)
       QVERIFY( bf.GetSpaceUsage() >= t.numSamples*SAMPLE_SIZE_DISK(t.fmt));
 
       checkLockUnlock(bf);
+      checkCloseLock(bf);
+
       checkGetMinMaxRMS(bf, t);
       checkGetMinMaxRMSOverflows(bf, t, EXPECT_THROW);
 
@@ -80,6 +82,7 @@ void testSimpleBlockFile(QString fileName, TestData &t)
       checkReadSummary(64*1024, bf, t);
 
       checkCopy(bf);
+      checkSetFileName(bf);
       checkRecover(bf);
 
       /* TESTME maybe more complete test of Recover()

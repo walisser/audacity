@@ -434,7 +434,7 @@ void XMLFileWriter::CloseWithoutEndingTags()
    if (!mFile.flush())
    {
       //--wxFFile::Close();
-      qWarning("QSaveFile::flush() failed");
+      qWarning("XMLFileWriter::CloseWithoutEndingTags: QSaveFile::flush() failed");
       ThrowException( mFile.fileName(), mCaption );
    }
 

@@ -74,6 +74,7 @@ bool XMLFileReader::Parse(XMLTagHandler *baseHandler,
    // Even though there were no parse errors, we only succeed if
    // the first-level handler actually got called, and didn't
    // return false.
+   // FIXME: will not fail if top returns true, inner returns false
    if (mBaseHandler)
       return true;
    else {

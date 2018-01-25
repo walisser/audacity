@@ -1,12 +1,16 @@
 
 * TODO
 - Test ODPCMAliasBlockFile threading
+- XMLFileWriter isn't exactly the same as current implementation
+   - it doesn't recover the partial file if there is any failure like low disk
 
 - put wxT() back in that were taken out, probably can't hurt...
 - submit PR for ODPCMAliasBlockFile Read255/Read64k bug
 - submit PR for GrowableSampleBuffer bug
 - submit PR for SilentBlockFile ReadData return > Length()
--
+- submit PR XMLReader will not fail if a child tag handler returns false,
+  only if the TOP handler returns false. Perhaps it doesn't matter.
+
 
 * android
 ==========

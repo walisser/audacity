@@ -90,13 +90,10 @@ void testFileException()
    });
 
    // check all causes produce an error message with file name
-   // use a switch block so we don't miss anything new
+   // use a switch block to get warning when new stuff comes up
    for (int cause = 0; cause <= (int)FileException::Cause::Rename; cause++)
       switch ((FileException::Cause)cause)
       {
-         default:
-            QFAIL("Logic error");
-            break;
          case FileException::Cause::Open:
          case FileException::Cause::Read:
          case FileException::Cause::Write:

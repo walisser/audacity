@@ -9,14 +9,21 @@
 
 #include "TestHelpers.h"
 
+// handler for testing what happens when XML syntax is ok but content is rejected
 class TestFailXMLTagHandler : public XMLTagHandler
 {
    bool HandleXMLTag(const QString& tag, const QStringMap& attrs) override
    {
-      (void)tag; (void)attrs;
+      (void)attrs;
+      // TESTME:
+      // pass the top-level tag, but not any children.
+      // return tag == "tag"
       return false;
    }
 
+   // TESTME BUG: this isn't called because the top-level tag parse fails above
+   // but if we try to call it, our test fails because only the top-level tag
+   // needs to return true to have a successful parse
    XMLTagHandler* HandleXMLChild(const QString& tag) override
    {
       (void)tag;
@@ -157,7 +164,7 @@ void testFileReader()
 
       QTemporaryFile f("testFileReader-handler.xml");
       QVERIFY( f.open() );
-      f.write(QByteArray("<tag>foo</tag>\n"));
+      f.write(QByteArray("<tag><subtag>foo</subtag></tag>\n"));
       f.close();
 
       QVERIFY( ! reader.Parse(&handler, f.fileName()) );
@@ -216,8 +223,8 @@ void verifyTestData(const QString& fileName)
 {
    XMLFileReader reader;
 
-   if (!reader.Parse(this, fileName))
-      qFatal("%s", qPrintable(reader.GetErrorStr()) );
+   QVERIFY( reader.Parse(this, fileName) );
+   //qFatal("%s", qPrintable(reader.GetErrorStr()) );
 }
 
 void verifyTestAttrs(const QStringMap& attrs)

@@ -26,49 +26,13 @@ virtual void buildFromXml(DirManager& dm, const QString& tag, const QStringMap& 
       qFatal("Unhandled block file type");
 }
 
-private Q_SLOTS:
-
-void initTestcase()
+void checkPCMAliasBlockFile(PCMAliasBlockFile& pcmBf, QString aliasFileName, TestData& t)
 {
-   _implementation = this;
-}
-
-void testPCMAliasBlockFile()
-{
+   int startSample = 0;
+   int channel = 0;
    BlockFile::gBlockFileDestructionCount = 0;
 
-   // TODO: this test code is mostly the same (and was copied from) SimpleBlockFile...
-   TestData t;
-   makeTestData("pcm.wav", t);
-
-   QString aliasFileName = "alias";
-   sampleCount startSample = 0;
-   int channel = 0;
-
-   // test extension is added and get the actual file name
    {
-      PCMAliasBlockFile bf(aliasFileName, t.fileName, startSample, t.numSamples, channel);
-      aliasFileName = bf.GetFileName();
-   }
-
-   // following tests assume the file doesn't exist
-   QFile(aliasFileName).remove();
-
-   // do not write summary
-   {
-      PCMAliasBlockFile bf(aliasFileName, t.fileName, startSample, t.numSamples, channel, false);
-      QVERIFY( !QFileInfo(bf.GetFileName()).exists() );
-   }
-
-   // do write summary
-   {
-      PCMAliasBlockFile bf(aliasFileName, t.fileName, startSample, t.numSamples, channel, true);
-      QVERIFY( QFileInfo(bf.GetFileName()).exists() );
-   }
-
-   {
-      PCMAliasBlockFile pcmBf(aliasFileName, t.fileName, startSample, t.numSamples, channel);
-
       // test from the base class in case a virtual override was missed
       BlockFile& bf = pcmBf;
 
@@ -89,6 +53,7 @@ void testPCMAliasBlockFile()
       QVERIFY( bf.GetSpaceUsage() == (BlockFile::DiskByteCount)QFileInfo(aliasFileName).size() );
 
       checkLockUnlock(bf);
+      checkCloseLock(bf);
 
       checkGetMinMaxRMS(bf, t);
       checkGetMinMaxRMSOverflows(bf, t, EXPECT_THROW);
@@ -100,13 +65,14 @@ void testPCMAliasBlockFile()
       checkReadSummary(64*1024, bf, t);
 
       checkCopy(bf);
+      checkSetFileName(bf);
       checkRecover(bf);
 
       // Locking so it should exist after this scope exits
       bf.Lock();
    }
 
-   QCOMPARE( (int)BlockFile::gBlockFileDestructionCount, 5 );
+   QCOMPARE( (int)BlockFile::gBlockFileDestructionCount, 1 );
    QVERIFY( QFileInfo(aliasFileName).exists() );
 
    // pcm file doesn't exit, must throw
@@ -160,11 +126,57 @@ void testPCMAliasBlockFile()
    QFile(t.fileName).remove();
 }
 
-void testODPCMAliasBlockFile()
+private Q_SLOTS:
+
+void initTestcase()
+{
+   _implementation = this;
+}
+
+void testPCMAliasBlockFile()
 {
    BlockFile::gBlockFileDestructionCount = 0;
 
    // TODO: this test code is mostly the same (and was copied from) SimpleBlockFile...
+   TestData t;
+   makeTestData("pcm.wav", t);
+
+   QString aliasFileName = "alias";
+   sampleCount startSample = 0;
+   int channel = 0;
+
+   // test extension is added and get the actual file name
+   {
+      PCMAliasBlockFile bf(aliasFileName, t.fileName, startSample, t.numSamples, channel);
+      aliasFileName = bf.GetFileName();
+   }
+
+   // following tests assume the file doesn't exist
+   QFile(aliasFileName).remove();
+
+   // do not write summary
+   {
+      PCMAliasBlockFile bf(aliasFileName, t.fileName, startSample, t.numSamples, channel, false);
+      QVERIFY( !QFileInfo(bf.GetFileName()).exists() );
+   }
+
+   // do write summary
+   {
+      PCMAliasBlockFile bf(aliasFileName, t.fileName, startSample, t.numSamples, channel, true);
+      QVERIFY( QFileInfo(bf.GetFileName()).exists() );
+   }
+
+   QCOMPARE( (int)BlockFile::gBlockFileDestructionCount, 3 );
+
+   PCMAliasBlockFile pcmBf(aliasFileName, t.fileName, startSample, t.numSamples, channel);
+   checkPCMAliasBlockFile(pcmBf, aliasFileName, t);
+}
+
+// test behavior before any data is read
+void testODPCMAliasBlockFile_BeforeReadData()
+{
+   BlockFile::gBlockFileDestructionCount = 0;
+
    TestData t;
    makeTestData("odpcm.wav", t);
 
@@ -198,7 +210,12 @@ void testODPCMAliasBlockFile()
       QVERIFY( ! bf.IsSummaryBeingComputed() );
       QVERIFY( bf.GetSpaceUsage() == 0 );
 
-      //checkLockUnlock(bf);
+      // this should fail, because the alias file cannot be moved until it has
+      // had its summary calculated and saved
+      checkLockUnlock(bf, EXPECT_FAILURE);
+
+      // same here
+      checkCloseLock(bf, EXPECT_FAILURE);
 
       // GetMinMaxRMS() should throw and fill in defaults
       checkGetMinMaxRMS(bf, t, EXPECT_DEFAULTS, EXPECT_THROW);
@@ -210,7 +227,6 @@ void testODPCMAliasBlockFile()
       checkReadData(bf, t);
       checkReadDataOverflows(bf, t, EXPECT_THROW);
 
-
       // Read256/Read64K() should return false and zero the samples out
       checkReadSummary(256, bf, t, EXPECT_DEFAULTS);
       checkReadSummary(64*1024, bf, t, EXPECT_DEFAULTS);
@@ -219,6 +235,8 @@ void testODPCMAliasBlockFile()
 
       // Cannot recover since no data read yet
       //checkRecover(bf);
+
+      checkSetFileName(bf);
 
       // Locking so it should exist after this scope exits
       bf.Lock();
@@ -253,6 +271,92 @@ void testODPCMAliasBlockFile()
       // release the loaded file
       _loadedBlockFile.reset();
    }
+}
+
+void testODPCMAliasBlockFile_AfterReadData()
+{
+   TestData t;
+   makeTestData("odpcm.wav", t);
+
+   QString aliasFileName="odalias";
+   sampleCount startSample = 0;
+   int channel = 0;
+
+   ODPCMAliasBlockFile od(aliasFileName, t.fileName, startSample, t.numSamples, channel);
+
+   // idea is to call this from a thread to read build the actual summary file
+   od.DoWriteSummary();
+
+   // now save it to disk
+   checkSaveXML(od, "odalias.xml", "ODAlias_AfterRead");
+
+   // assuming that was successful, should now behave like a PCMAliasBlockFile in all respects
+   checkPCMAliasBlockFile(od, aliasFileName, t);
+}
+
+void testODPCMAliasBlockFile_LowDisk()
+{
+   TestData t;
+   makeTestData("odpcm.wav", t);
+
+   QString aliasFileName="odalias";
+   sampleCount startSample = 0;
+   int channel = 0;
+
+   ODPCMAliasBlockFile od(aliasFileName, t.fileName, startSample, t.numSamples, channel);
+
+   // test what happens when summary can't be completely written
+   bool haveLimits = false;
+   {
+      FileSizeLimiter limit;
+      if (limit.apply(16))
+      {
+         QVERIFY_EXCEPTION_THROWN( od.DoWriteSummary(), AudacityException );
+         haveLimits = true;
+      }
+      else
+         QWARN("Not testing low disk condition on DoWriteSummary");
+   }
+
+   if (haveLimits)
+   {
+      // must behave as if no summary was read
+      QVERIFY( ! od.IsSummaryAvailable() );
+
+      checkGetMinMaxRMS(od, t, EXPECT_DEFAULTS, EXPECT_THROW);
+      checkReadSummary(256, od, t, EXPECT_DEFAULTS);
+      checkReadSummary(64*1024, od, t, EXPECT_DEFAULTS);
+   }
+
+   // test when xml can't be written
+   od.DoWriteSummary();
+
+   haveLimits = false;
+   {
+      FileSizeLimiter limit;
+      if (limit.apply(16))
+      {
+         QVERIFY_EXCEPTION_THROWN( checkSaveXML(od, "odalias.xml", "OD_Alias_LowDisk"), AudacityException );
+         haveLimits = true;
+      }
+      else
+         QWARN("Not testing low disk condition on SaveXML");
+   }
+
+   if (haveLimits)
+   {
+      // we failed to write the alias xml file, but we have the summary data
+      QVERIFY( od.IsSummaryAvailable() );
+      checkGetMinMaxRMS(od, t);
+      checkReadSummary(256, od, t);
+      checkReadSummary(64*1024, od, t);
+
+      // not saved so it cannot be moved
+      checkLockUnlock(od, EXPECT_FAILURE);
+      checkCloseLock(od, EXPECT_FAILURE);
+   }
+
+
 }
 
 };
