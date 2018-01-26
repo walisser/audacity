@@ -6,6 +6,7 @@
 
 - put wxT() back in that were taken out, probably can't hurt...
 - submit PR for ODPCMAliasBlockFile Read255/Read64k bug
+- submit PR for ODDecodeBlockFile::BuildFromXML aliasChannel typo
 - submit PR for GrowableSampleBuffer bug
 - submit PR for SilentBlockFile ReadData return > Length()
 - submit PR XMLReader will not fail if a child tag handler returns false,

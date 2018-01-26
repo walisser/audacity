@@ -157,7 +157,7 @@ BlockFilePtr PCMAliasBlockFile::BuildFromXML(DirManager &dm, const QStringMap &a
       {
          if (!dm.AssignFile(summaryFileName, value, false))
             // Make sure summaryFileName is back to uninitialized state so we can detect problem later.
-            summaryFileName = QString::null;
+            summaryFileName = QString();
       }
       else if (key == wxT("aliasfile"))
       {
