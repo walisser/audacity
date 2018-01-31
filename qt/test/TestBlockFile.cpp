@@ -199,12 +199,24 @@ void TestBlockFile::checkGetMinMaxRMSOverflows(BlockFile& bf, TestData& t, Expec
       QVERIFY_EXCEPTION_THROWN( bf.GetMinMaxRMS(0, t.numSamples+1), AudacityException );
 }
 
-void TestBlockFile::checkReadData(BlockFile& bf, TestData& t)
+void TestBlockFile::checkReadData(BlockFile& bf, TestData& t, ExpectThrow throws)
 {
    SampleBuffer dst(t.numSamples, t.fmt);
    ClearSamples(dst.ptr(), t.fmt, 0, t.numSamples);
-   QVERIFY( t.numSamples == bf.ReadData(dst.ptr(), t.fmt, 0, t.numSamples) );
-   QVERIFY( isEqual(t.samples, dst, t.fmt, t.numSamples) );
+
+   if (!throws)
+   {
+      QVERIFY( t.numSamples == bf.ReadData(dst.ptr(), t.fmt, 0, t.numSamples) );
+      QVERIFY( isEqual(t.samples, dst, t.fmt, t.numSamples) );
+   }
+   else
+   {
+      QVERIFY_EXCEPTION_THROWN( bf.ReadData(dst.ptr(), t.fmt, 0, t.numSamples), AudacityException );
+      QVERIFY( isZero(t.samples, t.fmt, 0, t.numSamples) );
+
+      // wants to throw, not allowed
+      QVERIFY( 0 == bf.ReadData(dst.ptr(), t.fmt, 0, t.numSamples, false) );
+   }
 }
 
 void TestBlockFile::checkReadDataOverflows(BlockFile& bf, TestData& t, ExpectThrow throws)

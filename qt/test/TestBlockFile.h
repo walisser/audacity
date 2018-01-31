@@ -84,7 +84,7 @@ protected:
    void checkGetMinMaxRMSOverflows(BlockFile& bf, TestData& t,
                                    ExpectThrow throws = EXPECT_NO_THROW);
 
-   void checkReadData(BlockFile& bf, TestData& t);
+   void checkReadData(BlockFile& bf, TestData& t, ExpectThrow throws=EXPECT_NO_THROW);
 
 
    void checkReadDataOverflows(BlockFile& bf, TestData& t,

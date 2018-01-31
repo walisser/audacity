@@ -13,7 +13,11 @@ SOURCES += \
    ../core/xml/XMLTagHandler.cpp \
    ../core/xml/XMLWriter.cpp \
    ../core/xml/XMLFileReader.cpp \
-   ../core/blockfile/ODDecodeBlockFile.cpp
+   ../core/ondemand/ODDecodeTask.cpp \
+   ../core/blockfile/SimpleBlockFile.cpp \
+   ../core/blockfile/NotYetAvailableException.cpp \
+   ../core/blockfile/ODDecodeBlockFile.cpp \
+   ../core/ondemand/ODTask.cpp
 
 addLibrary(sndfile)|error(Failed to find sndfile)
 addLibrary(expat)|error(Failed to find expat)

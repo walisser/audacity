@@ -32,6 +32,7 @@ The summary is eventually computed and written to a file in a background thread.
 #include "../Internat.h"
 #include "NotYetAvailableException.h"
 #include "core/xml/XMLWriter.h"
+#include "core/ondemand/ODDecodeTask.h"
 
 const int bheaderTagLen = 20;
 const char bheaderTag[bheaderTagLen + 1] = "AudacityBlockFile112";
@@ -77,7 +78,7 @@ ODDecodeBlockFile::ODDecodeBlockFile(const QString &existingFile, const QString 
    mAliasChannel(aliasChannel)
 {
    mDecoder = NULL;
-   audioFileName = audioFileName;
+   mAudioFileName = audioFileName;
    mFormat = int16Sample;
 }
 
@@ -152,7 +153,7 @@ bool ODDecodeBlockFile::Read256(float *buffer, size_t start, size_t len)
    }
    else
    {
-      ClearSamples((samplePtr)buffer, floatSample, 0, len);
+      ClearSamples((samplePtr)buffer, floatSample, 0, len*mSummaryInfo.fields);
       return false;
    }
 }
@@ -167,7 +168,7 @@ bool ODDecodeBlockFile::Read64K(float *buffer, size_t start, size_t len)
    }
    else
    {
-      ClearSamples((samplePtr)buffer, floatSample, 0, len);
+      ClearSamples((samplePtr)buffer, floatSample, 0, len*mSummaryInfo.fields);
       return false;
    }
 }
@@ -191,7 +192,7 @@ BlockFilePtr ODDecodeBlockFile::Copy(const QString &newFileName)
    {
       //Summary File might exist in this case, but it probably (99.999% of the time) won't.
       newBlockFile = make_blockfile<ODDecodeBlockFile>(
-          newFileName, mAliasStart, mLen, mAliasChannel, mType,
+          newFileName, mAudioFileName, mAliasStart, mLen, mAliasChannel, mType,
           mMin, mMax, mRMS, IsSummaryAvailable());
       //The client code will need to schedule this blockfile for OD decoding if it is going to a NEW track.
       //It can do this by checking for IsDataAvailable()==false.
@@ -367,7 +368,7 @@ int ODDecodeBlockFile::WriteODDecodeBlockFile()
    }
 
    //wxAtomicInc( mDataAvailable );
-   mDataAvailable.ref();
+   mDataAvailable++;
 
    return ret;
 }
@@ -391,7 +392,7 @@ QString ODDecodeBlockFile::GetFileName() const
    return mFileName;
 }
 
-/*
+/**-- moved to BlockFile.cpp
 /// A thread-safe version of CalcSummary.  BlockFile::CalcSummary
 /// uses a static summary array across the class, which we can't use.
 /// Get a buffer containing a summary block describing this sample
@@ -440,7 +441,7 @@ void ODDecodeBlockFile::CalcSummary(samplePtr buffer, size_t len,
 
    return localFullSummary;
 }
-*/
+--**/
 
 /// Reads the specified data from the aliased file, using libsndfile,
 /// and converts it to the given sample format.
