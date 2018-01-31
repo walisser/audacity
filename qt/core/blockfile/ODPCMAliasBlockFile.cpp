@@ -19,14 +19,14 @@ The summary is eventually computed and written to a file in a background thread.
 //#include "../Audacity.h"
 #include "ODPCMAliasBlockFile.h"
 
-#include <float.h>
+//#include <float.h>
 
 //#include <wx/file.h>
 //#include <wx/utils.h>
 //#include <wx/wxchar.h>
 //#include <wx/log.h>
 //#include <wx/thread.h>
-#include <sndfile.h>
+//#include <sndfile.h>
 
 //#include "../AudacityApp.h"
 //#include "PCMAliasBlockFile.h"
@@ -38,19 +38,13 @@ The summary is eventually computed and written to a file in a background thread.
 
 #include "NotYetAvailableException.h"
 
-#include "core/xml/XMLWriter.h"
-#include "core/xml/XMLTagHandler.h"
-#include "core/DirManager.h"
+#include "../xml/XMLWriter.h"
+#include "../xml/XMLTagHandler.h"
+#include "../DirManager.h"
 
 //#include <errno.h>
 
 //extern AudioIO *gAudioIO;
-
-// nice to know QAtomic won't fallback to using mutex locks
-#ifndef Q_ATOMIC_INT32_FETCH_AND_STORE_IS_ALWAYS_NATIVE
-#error Compiler or CPU does not support the required atomic operations
-#endif
-
 
 static const int aheaderTagLen = 20;
 static const char aheaderTag[aheaderTagLen + 1] = "AudacityBlockFile112";

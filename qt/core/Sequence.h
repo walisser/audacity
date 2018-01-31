@@ -17,7 +17,7 @@
 //#include <wx/dynarray.h>
 
 //#include "SampleFormat.h"
-//#include "xml/XMLTagHandler.h"
+#include "xml/XMLTagHandler.h"
 //#include "xml/XMLWriter.h"
 //#include "ondemand/ODTaskThread.h"
 

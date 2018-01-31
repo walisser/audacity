@@ -11,7 +11,7 @@
 #ifndef __AUDACITY_PCMALIASBLOCKFILE__
 #define __AUDACITY_PCMALIASBLOCKFILE__
 
-#include "core/BlockFile.h"
+#include "../BlockFile.h"
 //#include "../DirManager.h"
 class DirManager;
 

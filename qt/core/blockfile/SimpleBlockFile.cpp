@@ -57,8 +57,8 @@ to get its definition, rather than rolling our own.
 
 *//*******************************************************************/
 
-#include "core/Audacity.h"
-#include "core/blockfile/SimpleBlockFile.h"
+//#include "core/Audacity.h"
+#include "SimpleBlockFile.h"
 
 //#include <wx/wx.h>
 //#include <wx/filefn.h>
@@ -66,18 +66,18 @@ to get its definition, rather than rolling our own.
 //#include <wx/utils.h>
 //#include <wx/log.h>
 
-#include "core/FileException.h"
-#include "core/Prefs.h"
+#include "../FileException.h"
+//#include "..//Prefs.h"
 
 #include "core/FileFormats.h"
 
 #include "sndfile.h"
-#include "core/Internat.h"
-#include "core/MemoryX.h"
+//#include "../Internat.h"
+//#include "..//MemoryX.h"
 
-#include "core/xml/XMLWriter.h"
-#include "core/xml/XMLTagHandler.h"
-#include "core/DirManager.h"
+#include "../xml/XMLWriter.h"
+#include "../xml/XMLTagHandler.h"
+#include "../DirManager.h"
 
 /**--
 static uint32_t SwapUintEndianess(uint32_t in)

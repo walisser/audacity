@@ -40,9 +40,9 @@ and get deterministic behaviour.
 // (Note: this file should be included first)
 #include "float_cast.h"
 
-#include <stdlib.h>
-#include <math.h>
-#include <string.h>
+//#include <stdlib.h>
+//#include <math.h>
+//#include <string.h>
 //#include <sys/types.h>
 //#include <memory.h>
 //#include <assert.h>

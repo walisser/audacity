@@ -16,7 +16,7 @@
 //#include <wx/wxchar.h>
 //#include <wx/log.h>
 
-#include <sndfile.h>
+//#include <sndfile.h>
 
 //#include "../AudacityApp.h"
 //#include "../FileFormats.h"
@@ -25,9 +25,9 @@
 
 //#include "../ondemand/ODManager.h"
 //#include "../AudioIO.h"
-#include "core/xml/XMLWriter.h"
-#include "core/xml/XMLTagHandler.h"
-#include "core/DirManager.h"
+#include "../xml/XMLWriter.h"
+#include "../xml/XMLTagHandler.h"
+#include "../DirManager.h"
 //extern AudioIO *gAudioIO;
 
 PCMAliasBlockFile::PCMAliasBlockFile(

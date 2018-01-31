@@ -19,20 +19,22 @@ The summary is eventually computed and written to a file in a background thread.
 //#include "../Audacity.h"
 #include "ODDecodeBlockFile.h"
 
-#include <float.h>
+//#include <float.h>
 
 //#include <wx/utils.h>
 //#include <wx/wxchar.h>
 //#include <wx/log.h>
 //#include <wx/thread.h>
-#include <sndfile.h>
+//#include <sndfile.h>
 
-#include "../FileException.h"
-#include "../FileFormats.h"
-#include "../Internat.h"
+//#include "../FileException.h"
+//#include "../FileFormats.h"
+//#include "../Internat.h"
 #include "NotYetAvailableException.h"
 #include "core/xml/XMLWriter.h"
+#include "core/xml/XMLTagHandler.h"
 #include "core/ondemand/ODDecodeTask.h"
+#include "core/DirManager.h"
 
 const int bheaderTagLen = 20;
 const char bheaderTag[bheaderTagLen + 1] = "AudacityBlockFile112";

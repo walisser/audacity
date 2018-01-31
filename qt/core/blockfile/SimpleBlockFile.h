@@ -14,7 +14,7 @@
 //#include <wx/string.h>
 //#include <wx/filename.h>
 
-#include "core/BlockFile.h"
+#include "../BlockFile.h"
 //#include "core/DirManager.h"
 //#include "core/xml/XMLWriter.h"
 
