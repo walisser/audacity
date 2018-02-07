@@ -19,6 +19,9 @@
 
 #include "sndfile.h"
 
+// sndfile also checks for this, but at runtime
+static_assert(sizeof(off_t) == sizeof(sf_count_t), "libsndfile is configured incorrectly");
+
 //
 // enumerating headers
 //

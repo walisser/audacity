@@ -11,3 +11,6 @@ typedef QMap<QString,QString> QStringMap;
 
 // QString is always included, so must be wxT()
 #define wxT(s) (s)
+
+// include global macros and configuration in everything
+#include "core/Audacity.h"

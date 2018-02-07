@@ -239,4 +239,7 @@ void QuitAudacity();
 // pointer like std::unique_ptr or std::shared_ptr.
 #define safenew new
 
+// Include information collected about the target system
+#include "qmake_config.h"
+
 #endif // __AUDACITY_H__

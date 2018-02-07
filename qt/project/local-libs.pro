@@ -6,8 +6,9 @@ SUBDIRS= \
    vorbisenc \
    vorbisfile \
    flac \
-   sndfile \
+   flac++ \
    flacenc \
+   sndfile \
    expat
 
 vorbisenc.file = vorbis/vorbisenc.pro

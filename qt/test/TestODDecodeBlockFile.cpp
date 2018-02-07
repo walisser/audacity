@@ -1,6 +1,7 @@
 #include "TestBlockFile.h"
 
 #include "core/blockfile/ODDecodeBlockFile.h"
+#include "core/ondemand/ODDecodeFlacTask.h"
 
 #include <QtTest>
 #include "TestHelpers.h"
@@ -35,10 +36,11 @@ void testODDecodeBlockFile()
    BlockFile::gBlockFileDestructionCount = 0;
 
    TestData t;
-   makeTestData(44100, t);
-
+   makeTestData("odbf.flac", t);
 
    QString baseFileName = "odbf";
+   QFile(baseFileName+".au").remove();
+   QFile(baseFileName+".xml").remove();
 
    {
       ODDecodeBlockFile obf(baseFileName, t.fileName, 0, t.numSamples,
@@ -99,6 +101,67 @@ void testODDecodeBlockFile()
    }
 
    QFile(xmlName).remove();
+}
+
+void testODDecodeBlockFile_FLAC()
+{
+   BlockFile::gBlockFileDestructionCount = 0;
+
+   TestData t;
+
+   makeTestData("odbf.flac", t);
+
+   QString baseFileName = "odbf";
+   QFile(baseFileName+".au").remove();
+   QFile(baseFileName+".xml").remove();
+   QString fileName;
+
+   {
+      ODDecodeBlockFile obf(baseFileName, t.fileName, 0, t.numSamples,
+                            0, 0);
+      BlockFile& bf = obf;
+
+      ODDecodeFlacTask task;
+      ODFileDecoder *decoder = task.CreateFileDecoder(t.fileName);
+      QVERIFY(decoder);
+
+      QVERIFY(decoder->ReadHeader());
+      obf.SetODFileDecoder(decoder);
+
+      int ret = obf.DoWriteBlockFile();
+      QVERIFY(ret == 1);
+
+      // the file is decoded and summarized
+      // should now behave like a SimpleBlockFile...
+      QVERIFY( bf.GetFileName().endsWith(".au") );
+      fileName = bf.GetFileName();
+      QVERIFY( QFileInfo(fileName).exists() );
+
+      QVERIFY( bf.GetLength() == t.numSamples );
+      QVERIFY( ! bf.IsAlias() );
+      QVERIFY( bf.IsSummaryAvailable() );
+      QVERIFY( bf.IsDataAvailable() );
+      QVERIFY( ! bf.IsSummaryBeingComputed() );
+      QVERIFY( bf.GetSpaceUsage() >= t.numSamples*SAMPLE_SIZE_DISK(t.fmt));
+
+      checkLockUnlock(bf);
+      checkCloseLock(bf);
+
+      checkGetMinMaxRMS(bf, t);
+      checkGetMinMaxRMSOverflows(bf, t, EXPECT_THROW);
+
+      checkReadData(bf, t);
+      checkReadDataOverflows(bf, t, EXPECT_THROW);
+
+      checkReadSummary(256, bf, t);
+      checkReadSummary(64*1024, bf, t);
+
+      checkCopy(bf);
+      checkSetFileName(bf);
+      checkRecover(bf);
+   }
+
+   QVERIFY(   BlockFile::gBlockFileDestructionCount == 2 );
 }
 
 };

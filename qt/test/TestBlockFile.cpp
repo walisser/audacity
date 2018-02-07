@@ -51,7 +51,7 @@ bool DirManager::AssignFile(QString &fileName, const QString &value, bool check)
 // end stubs
 
 // zeroed test data (for SilentBlockFile)
-void TestBlockFile::makeTestData(size_t numSamples, TestData& t)
+void TestBlockFile::makeTestData(size_t numSamples, TestData& t) const
 {
    t.numSamples = numSamples;
    t.fmt = int16Sample; // don't care
@@ -60,9 +60,59 @@ void TestBlockFile::makeTestData(size_t numSamples, TestData& t)
    t.minSample=t.maxSample=t.rms = 0.0f;
 }
 
+void TestBlockFile::writeTestFile(const TestData& t) const
+{
+   // write our test buffer to a .wav file using libsndfile
+   SF_INFO sfInfo;
+   memset(&sfInfo, 0, sizeof(sfInfo));
+   sfInfo.channels = 1;
+   int format = 0;
+   if (t.fileName.endsWith(".wav"))
+      format |= SF_FORMAT_WAV;
+   else if (t.fileName.endsWith(".flac"))
+      format |= SF_FORMAT_FLAC;
+   else
+   {
+      QWARN("Not writing test file");
+      return;
+   }
+
+   switch (t.fmt)
+   {
+   case int16Sample: format |= SF_FORMAT_PCM_16; break;
+   case int24Sample: format |= SF_FORMAT_PCM_24; break;
+   case floatSample: format |= SF_FORMAT_FLOAT;  break;
+   default:
+      QFAIL("Unsupported sample format");
+   }
+
+   sfInfo.format = format;
+   sfInfo.samplerate = 44100;
+
+   // if this fails the format combination is invalid
+   QVERIFY( sf_format_check(&sfInfo) );
+
+   QFile(t.fileName).remove();
+
+   {
+   SFFile file;
+   file.reset( SFCall<SNDFILE*>(::sf_open, qPrintable(t.fileName), SFM_WRITE, &sfInfo) );
+   QVERIFY(file != nullptr);
+
+   if (t.fmt == int16Sample)
+      QVERIFY( (sf_count_t)t.numSamples == SFCall<sf_count_t>(sf_write_short, file.get(), (const short*)t.samples.ptr(), t.numSamples) );
+   else if (t.fmt == int24Sample)
+      QVERIFY( (sf_count_t)t.numSamples == SFCall<sf_count_t>(sf_write_int, file.get(), (const int*)t.samples.ptr(), t.numSamples) );
+   else
+      QVERIFY( (sf_count_t)t.numSamples == SFCall<sf_count_t>(sf_write_float, file.get(), (const float*)t.samples.ptr(), t.numSamples) );
+   }
+
+   QVERIFY( QFileInfo(t.fileName).exists() );
+}
+
 // sequential samples from -INT16_MAX to INT16_MAX
 // also writes test buffer to a file
-void TestBlockFile::makeTestData(const QString& fileName_, TestData& t)
+void TestBlockFile::makeTestData(const QString& fileName_, TestData& t) const
 {
    t.fileName = fileName_;
    t.numSamples = INT16_MAX*2 + 1;
@@ -79,25 +129,11 @@ void TestBlockFile::makeTestData(const QString& fileName_, TestData& t)
    QCOMPARE((int)samplePtr[0], -INT16_MAX);
    QCOMPARE((int)samplePtr[t.numSamples-1], INT16_MAX);
 
-   {
-      // write our test buffer to a .wav file using libsndfile
-      SF_INFO sfInfo;
-      memset(&sfInfo, 0, sizeof(sfInfo));
-      sfInfo.channels = 1;
-      sfInfo.format = SF_FORMAT_WAV|SF_FORMAT_PCM_16;
-      sfInfo.samplerate = 44100;
-      SFFile file;
-      file.reset( SFCall<SNDFILE*>(::sf_open, qPrintable(t.fileName), SFM_WRITE, &sfInfo) );
-      QVERIFY(file != nullptr);
-      sf_count_t byteLen = t.numSamples*SAMPLE_SIZE(t.fmt);
-      QVERIFY( byteLen == SFCall<sf_count_t>(sf_write_raw, file.get(), samplePtr, byteLen) );
-   }
-
-   QVERIFY( QFileInfo(t.fileName).exists() );
+   writeTestFile(t);
 }
 
 // setup a test buffer so its min/max is -/+ INT24_MAX
-void TestBlockFile::makeTestData24Bit(const QString& fileName_, TestData& t)
+void TestBlockFile::makeTestData24Bit(const QString& fileName_, TestData& t) const
 {
    const int INT24_MAX = (1<<23)-1;
 
@@ -118,10 +154,12 @@ void TestBlockFile::makeTestData24Bit(const QString& fileName_, TestData& t)
 
    QCOMPARE((int)samplePtr[0], -INT24_MAX);
    QCOMPARE((int)samplePtr[t.numSamples-1], INT24_MAX);
+
+   writeTestFile(t);
 }
 
 // setup a test buffer so its min/max is -/+ 1.0f
-void TestBlockFile::makeTestDataFloat(const QString& filename_, TestData& t)
+void TestBlockFile::makeTestDataFloat(const QString& filename_, TestData& t) const
 {
    t.fileName = filename_;
    t.numSamples = 40000 + 1;
@@ -137,6 +175,8 @@ void TestBlockFile::makeTestDataFloat(const QString& filename_, TestData& t)
 
    QCOMPARE(samplePtr[0], -1.0f);
    QCOMPARE(samplePtr[t.numSamples-1], 1.0f);
+
+   writeTestFile(t);
 }
 
 void TestBlockFile::checkLockUnlock(BlockFile& bf, ExpectFailure fails)
@@ -165,7 +205,6 @@ void TestBlockFile::checkGetMinMaxRMS(BlockFile& bf, TestData&t, ExpectDefault d
    {
       if (defaults)
       {
-         // not allowed to throw, expect it would otherwise
          // values should be filled with sane defaults
          auto m = bf.GetMinMaxRMS();
          QCOMPARE( m.min, -JUST_BELOW_MAX_AUDIO );
@@ -174,7 +213,6 @@ void TestBlockFile::checkGetMinMaxRMS(BlockFile& bf, TestData&t, ExpectDefault d
       }
       else
       {
-         // allowed to throw, expect it will not
          // values should be good
          auto m = bf.GetMinMaxRMS();
          QCOMPARE( m.min, t.minSample );
@@ -202,7 +240,7 @@ void TestBlockFile::checkGetMinMaxRMSOverflows(BlockFile& bf, TestData& t, Expec
 void TestBlockFile::checkReadData(BlockFile& bf, TestData& t, ExpectThrow throws)
 {
    SampleBuffer dst(t.numSamples, t.fmt);
-   ClearSamples(dst.ptr(), t.fmt, 0, t.numSamples);
+   setOne(dst, t.fmt, 0, t.numSamples);
 
    if (!throws)
    {
@@ -212,10 +250,15 @@ void TestBlockFile::checkReadData(BlockFile& bf, TestData& t, ExpectThrow throws
    else
    {
       QVERIFY_EXCEPTION_THROWN( bf.ReadData(dst.ptr(), t.fmt, 0, t.numSamples), AudacityException );
-      QVERIFY( isZero(t.samples, t.fmt, 0, t.numSamples) );
 
-      // wants to throw, not allowed
+      // exception thrown, destination untouched
+      QVERIFY( isOne(dst, t.fmt, 0, t.numSamples) );
+
+      // not allowed to throw
       QVERIFY( 0 == bf.ReadData(dst.ptr(), t.fmt, 0, t.numSamples, false) );
+
+      // destination should be zeroed
+      QVERIFY( isZero(dst, t.fmt, 0, t.numSamples) );
    }
 }
 

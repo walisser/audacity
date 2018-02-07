@@ -78,6 +78,25 @@ ODPCMAliasBlockFile::ODPCMAliasBlockFile(
 
 ODPCMAliasBlockFile::~ODPCMAliasBlockFile()
 {
+   if (mFileNameMutex.tryLock())
+      mFileNameMutex.unlock();
+   else
+      qWarning("mFileNameMutex was locked on destruct");
+
+   if (mSummaryAvailableMutex.tryLock())
+      mSummaryAvailableMutex.unlock();
+   else
+      qWarning("mSummaryAvailableMutex was locked on destruct");
+
+   if (mReadDataMutex.tryLock())
+      mReadDataMutex.unlock();
+   else
+      qWarning("mReadDataMutex was locked on destruct");
+
+   if (mWriteSummaryMutex.tryLock())
+      mWriteSummaryMutex.unlock();
+   else
+      qWarning("mWriteSummaryMutex was locked on destruct");
 }
 
 //Check to see if we have the file for these calls.

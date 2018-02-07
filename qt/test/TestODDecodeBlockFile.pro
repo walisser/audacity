@@ -17,9 +17,11 @@ SOURCES += \
    ../core/blockfile/SimpleBlockFile.cpp \
    ../core/blockfile/NotYetAvailableException.cpp \
    ../core/blockfile/ODDecodeBlockFile.cpp \
-   ../core/ondemand/ODTask.cpp
+   ../core/ondemand/ODTask.cpp \
+   ../core/ondemand/ODDecodeFlacTask.cpp
 
 addLibrary(sndfile)|error(Failed to find sndfile)
 addLibrary(expat)|error(Failed to find expat)
+addLibrary(flac++,libflac)|error(Failed to find flac++)
 
 include(config_post.prf)

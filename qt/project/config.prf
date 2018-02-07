@@ -33,12 +33,14 @@
 ###
 # Function addLibrary
 #
-# Configure a library from system libraries (pkg-config) or local sources
-#
+# Configure a library from system libraries (using pkg-config)
+# or local sources (under $$LIBSRC) as a fallback (unless CONFIG+=local_libs)
 #
 # Arguments
 # ++++
-# $$1 = pkg-config package name e.g. xyz
+# $$1 = pkg-config package name e.g. flac++
+# $$2 = optional, name of source dir under $$LIBSRC (default lib$$1 or $$1), e.g. libflac
+# $$3 = optional, name of the project dir under qt/project/ (default $$1), e.g. flac
 #
 # Output
 # ++++++
@@ -50,21 +52,34 @@
 defineTest(addLibrary) {
 
    name=$$1
+   srcname=$$2
+   projname=$$3
+
    libname=lib$$name
    prefix=$$upper($$libname)
-   source=INVALID
+   source=INVALID # LOCAL or SYSTEM
    version=0.0.0
-   srcdir=$$LIBSRC/$$libname
+
+   isEmpty(srcname) {
+      srcname=$$libname
+   }
+
+   isEmpty(projname) {
+      projname=$$name
+   }
 
    local_libs|!system("$$PKG_CONFIG $$name --exists") {
 
+      srcdir=$$LIBSRC/$$srcname
       !exists($$srcdir) {
-         #message($$srcdir doesnt exist)
-         srcdir=$$LIBSRC/$$name
-         !exists($$srcdir) {
-            warning(configLibrary $$name: expected sources in $$absolute_path($$srcdir))
-            return(false)
+         srcname=$$name
+         altsrcdir=$$LIBSRC/$$srcname
+         !exists($$altsrcdir) {
+            # ok I give up, please pass the srcdir name in second argument
+            warning("configLibrary $$name: failed to find sources in $$absolute_path($$srcdir) or $$absolute_path($$altsrcdir)")
+               return(false)
          }
+         srcdir=$$altsrcdir
       }
 
       versionCmd="echo unknown"
@@ -72,7 +87,6 @@ defineTest(addLibrary) {
          versionCmd="cat $$srcdir/configure.ac | grep AC_INIT | $$QMAKE_SED 's/.+\\[([0-9\\.]+)\\].+/\\1/'"
       }
       else:exists($$srcdir/CMakeLists.txt) {
-         message("cmake things")
          versionCmd="cat $$srcdir/CMakeLists.txt | grep set\\(PACKAGE_VERSION | $$QMAKE_SED 's/.*\"([0-9\.]+)\".*/\1/'"
       }
       else: {
@@ -80,13 +94,13 @@ defineTest(addLibrary) {
       }
 
       # lib may have it's own setup or use the generic one that follows
-      deps="$${PROJECT_DIR}/$${name}/$${name}.prf"
+      deps="$${PROJECT_DIR}/$${projname}/$${name}.prf"
       exists($$deps):include($$deps)
       else {
          # this generally works...
          INCLUDEPATH *= $$srcdir/include
          INCLUDEPATH *= $$BUILD_DIR/$$name
-         LIBS *= $$BUILD_DIR/$$name/build/$$HOST/$${libname}.a
+         LIBS *= $$BUILD_DIR/$$projname/build/$$HOST/$${libname}.a
       }
 
       export(INCLUDEPATH)
@@ -336,6 +350,9 @@ win32 {
    CONFIG *= console
    QMAKE_CFLAGS   *= -march=core2
    QMAKE_CXXFLAGS *= -march=core2
+
+   # win32 qt usually has irritating debug and release setup
+   CONFIG *= release_qt
 }
 
 # we're always going to use local libs on some targets
@@ -343,9 +360,11 @@ android|ios {
    CONFIG *= local_libs
 }
 
-# win32 qt usually has irritating debug and release setup
-win32 {
-   CONFIG *= release_qt
+# sndfile needs off_t to be 64-bit, probably can't hurt to do this globally
+# this must come before sizeof() tests
+android: {
+   QMAKE_CFLAGS += "-D__USE_FILE_OFFSET64"
+   QMAKE_CXXFLAGS += "-D__USE_FILE_OFFSET64"
 }
 
 # We need extended regexp, -r for GNU sed, -E for BSD

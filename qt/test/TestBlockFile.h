@@ -36,20 +36,21 @@ protected:
    // DirManager mockup: subclasses implement to call ::BuildFromXML(dm, attr) and store to _loadedBlockFile
    virtual void buildFromXml(DirManager& dm, const QString& tag, const QStringMap& attrs) = 0;
 
+   // write to a file using sndfile
+   void writeTestFile(const TestData& t) const;
+
    // zeroed test data (for SilentBlockFile)
-   void makeTestData(size_t numSamples, TestData& t);
+   void makeTestData(size_t numSamples, TestData& t) const;
 
    // sequential samples from -INT16_MAX to INT16_MAX
    // also writes test buffer to a file
-   void makeTestData(const QString& fileName_, TestData& t);
-
+   void makeTestData(const QString& fileName_, TestData& t) const;
 
    // setup a test buffer so its min/max is -/+ INT24_MAX
-   void makeTestData24Bit(const QString& fileName_, TestData& t);
-
+   void makeTestData24Bit(const QString& fileName_, TestData& t) const;
 
    // setup a test buffer so its min/max is -/+ 1.0f
-   void makeTestDataFloat(const QString& filename_, TestData& t);
+   void makeTestDataFloat(const QString& filename_, TestData& t) const;
 
 
    // use typedefs for checks that have multiple modes

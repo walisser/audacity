@@ -1,10 +1,12 @@
 
-* TODO
+TODO
+----
 - Test ODPCMAliasBlockFile threading
 - XMLFileWriter isn't exactly the same as current implementation
    - it doesn't recover the partial file if there is any failure like low disk
 
 - put wxT() back in that were taken out, probably can't hurt...
+- submit PR for ODDecodeFlacTask incorrect usage of memcpy() .. EXPERIMENTAL_OD_FLAC ..
 - submit PR for ODPCMAliasBlockFile Read255/Read64k bug
 - submit PR for ODDecodeBlockFile::BuildFromXML aliasChannel typo
 - submit PR ODDecodeBlockFile Read256/Read64K doesn't clear the full buffer
@@ -13,12 +15,17 @@
 - submit PR XMLReader will not fail if a child tag handler returns false,
   only if the TOP handler returns false. Perhaps it doesn't matter.
 
-* android
-==========
-qmakespec for android/g++ needs PCH support added: https://codereview.qt-project.org/#/c/216082/
-qdevice.pri changed to api level 17 for malloc_usable_size
+Mac OS X
+--------
+- build is broken due to c++11/stl issues, expect that might be resolved upstream
 
-* annotations
+
+Android
+-------
+- qmakespec for android/g++ needs [PCH support added](https://codereview.qt-project.org/#/c/216082/)
+- qdevice.pri changed to api level 17 for malloc_usable_size
+
+Annotations
 -----------
 - PORTME - needs qt version
 - TESTME - needs test; or cannot test due to PORTME issue
@@ -27,47 +34,47 @@ qdevice.pri changed to api level 17 for malloc_usable_size
 - //--   - commented out code for old implementation
 - /**-- --**//
 
-* translation
--------------
-_() -> deactivated for now
-%s -> %1, %2, %3 etc and use QString::arg()
-wxT() -> ()
+Translation
+------------
+- _() -> deactivated for now
+- %s -> %1, %2, %3 etc and use QString::arg()
+- wxT() -> ()
 
 
-* type conversions
+Type Conversions
 ----------------
-wxArrayString -> QStringList
-wxString -> QString
-wxChar* -> QString
-wxChar** -> QStringList / QStringMap
+- wxArrayString -> QStringList
+- wxString -> QString
+- wxChar* -> QString
+- wxChar** -> QStringList / QStringMap
    - QStringMap for XML attribute/value pairs
-wxFileName -> QString
-wxFileNameWrapper -> QString
-wxChar -> QChar
-wxUint32 -> uint32_t
-wxLongLong -> int64_t
+- wxFileName -> QString
+- wxFileNameWrapper -> QString
+- wxChar -> QChar
+- wxUint32 -> uint32_t
+- wxLongLong -> int64_t
    - use stdint types where apropriate
-wxCharBuffer -> ??
-wxLogDebug():
+- wxCharBuffer -> ??
+- wxLogDebug():
    - qWarning(), if recoverable error
-wxFileName(path)::GetFullName => QFileInfo(path)::fileName()
-wxFileName(path)::GetFullPath => path
-wxASSERT() -> Q_ASSERT or Q_ASSUME or Q_UNREACHABLE
-wxASSERT_MSG -> Q_ASSERT_X or Q_ASSUME_X
+- wxFileName(path)::GetFullName => QFileInfo(path)::fileName()
+- wxFileName(path)::GetFullPath => path
+- wxASSERT() -> Q_ASSERT or Q_ASSUME or Q_UNREACHABLE
+- wxASSERT_MSG -> Q_ASSERT_X or Q_ASSUME_X
    Q_ASSUME iff code that follows would be incorrect otherwise??
    Q_UNREACHABLE if the assert is to guard unreachable code
-wxUINT32_SWAP_ALWAYS -> qbswap
-wxMessageBox -> qCritical()
+- wxUINT32_SWAP_ALWAYS -> qbswap
+- wxMessageBox -> qCritical()
    - make Audacity core free of any gui requirement
 
-* misc
+Misc
 --------------
-TRUE -> true
-FALSE -> false
-int -> bool
+- TRUE -> true
+- FALSE -> false
+- int -> bool
 
 
-* android
+Android Deployment Speeds
 ---------------
 * * deployment speeds (tablet)
 - "debug":   10 - 14s
@@ -80,12 +87,13 @@ int -> bool
 - "ministro": 6 - 8s
 
 
-* Qt bugs
+Qt bugs
 ----------------
-QSaveFile::commit() will create an empty file if disk is full,
-and will not report an error. QSaveFile::flush() will correctly return false
+- QSaveFile::commit() will create an empty file if disk is full,
+  and will not report an error. QSaveFile::flush() will correctly return false
 
-* Qt codereview..
+
+Qt codereview
 ----------------
 <ddubya> is there some quick setup guide for pushing a patch? I can't even find what repo I need to fork
 <svuorela> ddubya: do you have an account ?

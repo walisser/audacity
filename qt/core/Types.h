@@ -88,11 +88,23 @@ public:
 
    long long as_long_long() const { return value; }
 
+
    size_t as_size_t() const {
-      Q_ASSERT(value >= 0);
-      Q_ASSERT(std::numeric_limits<type>::max() <= std::numeric_limits<size_t>::max());
+
+      // size_t is always unsigned
+      Q_REQUIRE(value >= 0);
+
+      // some 32-bit setups might have 4-byte size_t... which makes this unreliable
+      #if SIZEOF_SIZE_T == 4
+      Q_REQUIRE(value >= 0 && (unsigned type)value < std::numeric_limits<size_t>::max());
+      #else
+      static_assert(std::numeric_limits<type>::max() <= std::numeric_limits<size_t>::max(),
+                   "Cast from sampleCount to size_t loses precision");
+      #endif
+
       return value;
    }
+
 
    sampleCount &operator += (sampleCount b) { value += b.value; return *this; }
    sampleCount &operator -= (sampleCount b) { value -= b.value; return *this; }

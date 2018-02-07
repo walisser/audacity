@@ -21,10 +21,10 @@
 
 #ifndef __AUDACITY_ODTASKTHREAD__
 #define __AUDACITY_ODTASKTHREAD__
-#include <wx/thread.h>
+//--#include <wx/thread.h>
 
-#include "../Audacity.h"	// contains the set-up of AUDACITY_DLL_API
-#include "../MemoryX.h"
+//--#include "../Audacity.h"	// contains the set-up of AUDACITY_DLL_API
+//--#include "../MemoryX.h"
 
 class ODTask;
 
@@ -137,12 +137,10 @@ public:
    ///@param task the task to be launched as an
    ODTaskThread(ODTask* task);
 
-
 protected:
    ///Executes a part of the task
    void* Entry() override;
    ODTask* mTask;
-
 };
 
 
