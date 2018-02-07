@@ -560,7 +560,7 @@ size_t BlockFile::CommonReadData(
       else {
          auto channels = info.channels;
          Q_ASSERT(channels >= 1);
-         Q_ASSERT(channel < (unsigned int)channels);
+         Q_ASSERT((int)channel < channels);
 
          if (channels == 1 &&
              format == int16Sample &&

@@ -1164,7 +1164,7 @@ namespace std
    namespace tr1
    {
 #endif
-      template<typename T> struct hash;
+      //template<typename T> struct hash;
       template<> struct hash< QString > {
          size_t operator () (const QString &str) const // noexcept
          {

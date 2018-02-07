@@ -367,6 +367,11 @@ android: {
    QMAKE_CXXFLAGS += "-D__USE_FILE_OFFSET64"
 }
 
+win32: {
+   QMAKE_CFLAGS += "-D_FILE_OFFSET_BITS=64"
+   QMAKE_CXXFLAGS += "-D_FILE_OFFSET_BITS=64"
+}
+
 # We need extended regexp, -r for GNU sed, -E for BSD
 # if we keep patterns simple they'll work on both
 QMAKE_SED="sed -r"
