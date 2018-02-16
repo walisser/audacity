@@ -54,7 +54,7 @@ extern const QString& GetCustomSubstitution(const QString& str1 );
 #undef _TS
 #undef _
 #define _TS(s) (s)
-#define _(s)   (s)
+#define _(s)   QString(s)
 
 // The two string arugments will go to the .pot file, as
 // msgid sing

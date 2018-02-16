@@ -19,6 +19,9 @@ public:
    float maxSample;
    float rms;
    SampleBuffer samples;
+   bool cleanupFile;
+   TestData() { numSamples=minSample=maxSample=rms=0, cleanupFile=true; }
+   virtual ~TestData() { if (cleanupFile && !fileName.isEmpty()) QFile(fileName).remove(); }
 };
 
 class DirManager;

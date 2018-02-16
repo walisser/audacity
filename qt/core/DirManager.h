@@ -19,6 +19,7 @@
 //--#include <wx/utils.h>
 
 //--#include "audacity/Types.h"
+#include "SampleFormat.h"
 #include "xml/XMLTagHandler.h"
 //--#include "wxFileNameWrapper.h"
 #ifndef __AUDACITY_OLD_STD__
@@ -40,7 +41,7 @@ using BlockFilePtr = std::shared_ptr<BlockFile>;
 
 using BlockHash = std::unordered_map< QString, std::weak_ptr<BlockFile> >;
 
-uint64_t GetFreeMemory();
+//--uint64_t GetFreeMemory();
 
 enum {
    kCleanTopDirToo = 1,        // The top directory can be excluded from clean.
@@ -63,14 +64,17 @@ class PROFILE_DLL_API DirManager final : public XMLTagHandler {
    // Returns true on success.
    // If SetProject is told NOT to create the directory
    // but it doesn't already exist, SetProject fails and returns false.
-   bool SetProject(QString& newProjPath, QString& newProjName, const bool bCreate);
+   bool SetProject(const QString &newProjPath, const QString& newProjName, const bool bCreate);
 
-   QString GetProjectDataDir();
-   QString GetProjectName();
+   QString GetProjectDataDir() const { return projFull; }
+   QString GetProjectName() const { return projName; }
 
-   uint64_t GetFreeDiskSpace();
+   // Return free space or -1 if it can't be determined
+   int64_t GetFreeDiskSpace();
 
    BlockFilePtr
+      // NOTE: deferredWrite has no effect since there is no caching
+      // due to DEPRECATED_AUDIO_CACHE
       NewSimpleBlockFile(samplePtr sampleData,
                                  size_t sampleLen,
                                  sampleFormat format,
@@ -101,8 +105,8 @@ class PROFILE_DLL_API DirManager final : public XMLTagHandler {
    BlockFilePtr CopyBlockFile(const BlockFilePtr &b);
 
    //BlockFile *LoadBlockFile(const wxChar **attrs, sampleFormat format);
-   BlockFile *LoadBlockFile(const QStringMap &attrs, sampleFormat format);
-   void SaveBlockFile(BlockFile *f, int depth, FILE *fp);
+   //--BlockFile *LoadBlockFile(const QStringMap &attrs, sampleFormat format);
+   //--void SaveBlockFile(BlockFile *f, int depth, FILE *fp);
 
 #if LEGACY_PROJECT_FILE_SUPPORT
    BlockFile *LoadBlockFile(wxTextFile * in, sampleFormat format);
@@ -111,8 +115,12 @@ class PROFILE_DLL_API DirManager final : public XMLTagHandler {
 
    std::pair<bool, QString> CopyToNewProjectDirectory(BlockFile *f);
 
+   // Tests if file name we would like to create, would clobber an aliased file, for example when
+   // exporting. If yes, rename the otherwise clobbered file and update any block files that
+   // reference it. If no, do nothing. Returns true if rename succeeds or isn't needed
    bool EnsureSafeFilename(const QString &fName);
 
+   // Sets the target for next tag passed into HandleXMLTag()
    void SetLoadingTarget(BlockArray *pArray, unsigned idx)
    {
       mLoadingTarget = pArray;
@@ -124,11 +132,10 @@ class PROFILE_DLL_API DirManager final : public XMLTagHandler {
    // Note: following affects only the loading of block files when opening a project
    void SetLoadingMaxSamples(size_t max) { mMaxSamples = max; }
 
-   //--bool HandleXMLTag(const wxChar *tag, const wxChar **attrs) override;
    bool HandleXMLTag(const QString &tag, const QStringMap &attrs) override;
    
    XMLTagHandler *HandleXMLChild(const QString & tag) override
-      { Q_UNUSED(tag); return NULL; }
+      { (void)tag; return NULL; }
    bool AssignFile(QString &filename, const QString &value, bool check);
 
    // Clean the temp dir. Note that now where we have auto recovery the temp
@@ -147,6 +154,7 @@ class PROFILE_DLL_API DirManager final : public XMLTagHandler {
    //    Important when you know that there are already errors in the log.
    // bAutoRecoverMode: Do not show any option dialogs for how to deal with errors found here.
    //    Too complicated during auto-recover. Just correct problems the "safest" way.
+   // return combination of FSCK* flags
    int ProjectFSCK(const bool bForceError, const bool bAutoRecoverMode);
 
    void FindMissingAliasedFiles(
@@ -179,6 +187,7 @@ class PROFILE_DLL_API DirManager final : public XMLTagHandler {
    // auto recovery is cancelled and should be retried later
    static void SetDontDeleteTempFiles() { dontDeleteTempFiles = true; }
 
+#ifdef DEPRECATED_AUDIO_CACHE
    // Write all write-cached block files to disc, if any
    void WriteCacheToDisk();
 
@@ -186,6 +195,7 @@ class PROFILE_DLL_API DirManager final : public XMLTagHandler {
    // nothing)
    // A no-fail operation that does not throw
    void FillBlockfilesCache();
+#endif
 
  private:
 
@@ -234,6 +244,7 @@ class PROFILE_DLL_API DirManager final : public XMLTagHandler {
    static int numDirManagers;
    static bool dontDeleteTempFiles;
 
+   friend class TestDirManager;
 };
 
 #endif

@@ -59,7 +59,7 @@ try
 }
 catch ( const FileException &e )
 {
-   Q_UNUSED(e);
+   (void)e;
 
    // The constructor SimpleBlockFile sometimes throws this,
    // but it never will for the arguments that were passed to it here.

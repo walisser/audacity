@@ -85,12 +85,12 @@ class AUDACITY_DLL_API XMLTagHandler /* not final */ {
 
    // This method will be called when a closing tag is encountered.
    // It is optional to override this method.
-   virtual void HandleXMLEndTag(const QString &tag) {Q_UNUSED(tag)}
+   virtual void HandleXMLEndTag(const QString &tag) {(void)tag;}
 
    // This method will be called when element content has been
    // encountered.
    // It is optional to override this method.
-   virtual void HandleXMLContent(const QString &content) {Q_UNUSED(content)}
+   virtual void HandleXMLContent(const QString &content) {(void)content;}
 
    // If the XML document has children of your tag, this method
    // should be called.  Typically you should construct a NEW

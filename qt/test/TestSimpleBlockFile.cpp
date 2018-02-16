@@ -28,7 +28,7 @@ void testSimpleBlockFile_int16()
 {
    QString fileName = "audio_int16";
    TestData t;
-   makeTestData(fileName, t);
+   makeTestData("", t);
    testSimpleBlockFile(fileName, t);
 }
 
@@ -36,7 +36,7 @@ void testSimpleBlockFile_int24()
 {
    QString fileName = "audio_int24";
    TestData t;
-   makeTestData24Bit(fileName, t);
+   makeTestData24Bit("", t);
    testSimpleBlockFile("audio_int24", t);
 }
 
@@ -44,7 +44,7 @@ void testSimpleBlockFile_float()
 {
    QString fileName = "audio_float";
    TestData t;
-   makeTestDataFloat(fileName, t);
+   makeTestDataFloat("", t);
    testSimpleBlockFile("audio_float", t);
 }
 

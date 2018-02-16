@@ -61,11 +61,11 @@
 *//*******************************************************************/
 
 
-#include "Audacity.h"
+//--#include "Audacity.h"
 #include "DirManager.h"
-#include "MemoryX.h"
+//--#include "MemoryX.h"
 
-#include <time.h> // to use time() for srand()
+//--#include <time.h> // to use time() for srand()
 
 //#include <wx/defs.h>
 //#include <wx/app.h>
@@ -81,18 +81,18 @@
 //#include <wx/object.h>
 
 // chmod
-#ifdef __UNIX__
-#include <sys/types.h>
-#include <sys/stat.h>
-#endif
+//--#ifdef __UNIX__
+//--#include <sys/types.h>
+//--#include <sys/stat.h>
+//--#endif
 
-#include "AudacityApp.h"
-#include "AudacityException.h"
+//--#include "AudacityApp.h"
+//--#include "AudacityException.h"
 #include "BlockFile.h"
 #include "FileException.h"
-#include "FileNames.h"
-#include "blockfile/LegacyBlockFile.h"
-#include "blockfile/LegacyAliasBlockFile.h"
+//--#include "FileNames.h"
+//--#include "blockfile/LegacyBlockFile.h"
+//--#include "blockfile/LegacyAliasBlockFile.h"
 #include "blockfile/SimpleBlockFile.h"
 #include "blockfile/SilentBlockFile.h"
 #include "blockfile/PCMAliasBlockFile.h"
@@ -100,23 +100,26 @@
 #include "blockfile/ODDecodeBlockFile.h"
 #include "InconsistencyException.h"
 #include "Internat.h"
-#include "Project.h"
-#include "Prefs.h"
+//--#include "Project.h"
+//--#include "Prefs.h"
 #include "Sequence.h"
-#include "widgets/Warning.h"
-#include "widgets/MultiDialog.h"
-#include "widgets/ErrorDialog.h"
+//--#include "widgets/Warning.h"
+//--#include "widgets/MultiDialog.h"
+//--#include "widgets/ErrorDialog.h"
 
-#include "ondemand/ODManager.h"
-
-#include "Track.h"
-
-#if defined(__WXMAC__)
-#include <mach/mach.h>
-#include <mach/vm_statistics.h>
-#endif
+#include "DialogManager.h"
 
 
+//--#include "ondemand/ODManager.h"
+
+//--#include "Track.h"
+
+//--#if defined(__WXMAC__)
+//--#include <mach/mach.h>
+//--#include <mach/vm_statistics.h>
+//--#endif
+
+/**--
 wxMemorySize GetFreeMemory()
 {
    wxMemorySize avail;
@@ -138,6 +141,8 @@ wxMemorySize GetFreeMemory()
 
    return avail;
 }
+--**/
+
 
 //
 // local helper functions for subdirectory traversal
@@ -159,72 +164,72 @@ wxMemorySize GetFreeMemory()
 // JKC: Using flag wxDIR_NO_FOLLOW to NOT follow symbolic links.
 // Directories and files inside a project should never be symbolic 
 // links, so if we find one, do not follow it.
-static int RecursivelyEnumerate(wxString dirPath,
-                                  wxArrayString& filePathArray,  // output: all files in dirPath tree
-                                  wxString dirspec,
-                                  wxString filespec,
+static int RecursivelyEnumerate(const QString& dirPath,
+                                  QStringList& filePathArray,  // output: all files in dirPath tree
+                                  const QString& dirFilter,
+                                  const QString& fileFilter,
                                   bool bFiles, bool bDirs,
                                   int progress_count = 0,
                                   int progress_bias = 0,
                                   ProgressDialog* progress = NULL)
 {
    int count=0;
-   bool cont;
 
-   wxDir dir(dirPath);
-   if(dir.IsOpened()){
-      wxString name;
+   Q_ASSERT(!dirFilter.isEmpty() && !fileFilter.isEmpty());
 
-      // Don't DELETE files from a selective top level, e.g. if handed "projects*" as the
+   QDir dir(dirPath);
+   if (dir.exists())
+   {
+      // Don't include files from a selective top level, e.g. if handed "projects*" as the
       // directory specifier.
-      if (bFiles && dirspec.IsEmpty() ){
-         cont= dir.GetFirst(&name, filespec, wxDIR_FILES | wxDIR_HIDDEN | wxDIR_NO_FOLLOW);
-         while ( cont ){
-            wxString filepath = dirPath + wxFILE_SEP_PATH + name;
-
+      if (bFiles && dirFilter=="*")
+      {
+         auto files = dir.entryList(QStringList{fileFilter}, QDir::Files|QDir::Hidden|QDir::NoSymLinks);
+         for (const auto& fileName : files)
+         {
+            //qDebug() << fileName;
+            filePathArray.append(dir.absoluteFilePath(fileName));
             count++;
-            filePathArray.Add(filepath);
-
-            cont = dir.GetNext(&name);
-
             if (progress)
-               progress->Update(count + progress_bias,
-                                progress_count);
+               progress->Update(count + progress_bias, progress_count);
          }
       }
 
-      cont= dir.GetFirst(&name, dirspec, wxDIR_DIRS | wxDIR_NO_FOLLOW);
-      while ( cont ){
-         wxString subdirPath = dirPath + wxFILE_SEP_PATH + name;
-         count += RecursivelyEnumerate(
-                     subdirPath, filePathArray, wxEmptyString,filespec,
-                     bFiles, bDirs,
-                     progress_count, count + progress_bias,
-                     progress);
-         cont = dir.GetNext(&name);
+      auto dirs = dir.entryList(QStringList{dirFilter},
+                                QDir::Dirs|QDir::NoDotAndDotDot|QDir::Hidden|QDir::NoSymLinks);
+      for (const auto& dirName : dirs)
+      {
+         //qDebug() << dir.absoluteFilePath(dirName);
+         count += RecursivelyEnumerate(dir.absoluteFilePath(dirName),
+                                       filePathArray,
+                                       wxT("*"), fileFilter,
+                                       bFiles, bDirs,
+                                       progress_count, count + progress_bias,
+                                       progress);
       }
    }
 
-   if (bDirs) {
-      filePathArray.Add(dirPath);
+   if (bDirs)
+   {
+      filePathArray.append(dirPath);
       count++;
    }
 
    return count;
 }
 
-static int RecursivelyEnumerateWithProgress(wxString dirPath,
-                                             wxArrayString& filePathArray, // output: all files in dirPath tree
-                                             wxString dirspec,
-                                             wxString filespec,
+static int RecursivelyEnumerateWithProgress(const QString& dirPath,
+                                             QStringList& filePathArray, // output: all files in dirPath tree
+                                             const QString& dirspec,
+                                             const QString& filespec,
                                              bool bFiles, bool bDirs,
                                              int progress_count,
-                                             const wxChar* message)
+                                             const QString& message)
 {
-   Maybe<ProgressDialog> progress{};
+   std::unique_ptr<ProgressDialog> progress;
 
-   if (message)
-      progress.create( _("Progress"), message );
+   if (!message.isEmpty())
+      progress = DialogManager::NewProgressDialog(_("Progress"), message);
 
    int count = RecursivelyEnumerate(
                   dirPath, filePathArray, dirspec,filespec,
@@ -235,15 +240,16 @@ static int RecursivelyEnumerateWithProgress(wxString dirPath,
    return count;
 }
 
-static int RecursivelyCountSubdirs(wxString dirPath)
+static int RecursivelyCountSubdirs(const QString& dirPath)
 {
-   bool bContinue;
+   (void)dirPath;
    int nCount = 0;
+   /**--
    wxDir dir(dirPath);
    if (dir.IsOpened() && dir.HasSubDirs())
    {
       wxString name;
-      bContinue = dir.GetFirst(&name, wxEmptyString, wxDIR_DIRS);
+      bool bContinue = dir.GetFirst(&name, wxEmptyString, wxDIR_DIRS);
       while (bContinue)
       {
          nCount++;
@@ -252,22 +258,28 @@ static int RecursivelyCountSubdirs(wxString dirPath)
          bContinue = dir.GetNext(&name);
       }
    }
+   --**/
    return nCount;
 }
 
-static int RecursivelyRemoveEmptyDirs(wxString dirPath,
+static int RecursivelyRemoveEmptyDirs(const QString& dirPath,
                                        int nDirCount = 0,
                                        ProgressDialog* pProgress = NULL)
 {
-   bool bContinue;
-   wxDir dir(dirPath);
+   (void)dirPath;
+   (void)nDirCount;
+   (void)pProgress;
    int nCount = 0;
+   /**-- TODO: this is only invoked if ProjectFSCK takes a user selection
+    * it seems like it could be replaced with a combination of the other functions
+
+   wxDir dir(dirPath);
    if (dir.IsOpened())
    {
       if (dir.HasSubDirs())
       {
          wxString name;
-         bContinue = dir.GetFirst(&name, wxEmptyString, wxDIR_DIRS);
+         bool bContinue = dir.GetFirst(&name, wxEmptyString, wxDIR_DIRS);
          while (bContinue)
          {
             wxString subdirPath = dirPath + wxFILE_SEP_PATH + name;
@@ -297,61 +309,69 @@ static int RecursivelyRemoveEmptyDirs(wxString dirPath,
       if (pProgress)
          pProgress->Update(nCount, nDirCount);
    }
+   --**/
    return nCount;
 }
 
-static void RecursivelyRemove(wxArrayString& filePathArray, int count, int bias,
-                              int flags, const wxChar* message = NULL)
+// TODO: this should be renamed since there is no recursive delete
+static void RecursivelyRemove(const QStringList& filePathArray, int count, int bias,
+                              int flags, const QString& message = NULL)
 {
    bool bFiles= (flags & kCleanFiles) != 0;
    bool bDirs = (flags & kCleanDirs) != 0;
    bool bDirsMustBeEmpty = (flags & kCleanDirsOnlyIfEmpty) != 0;
    Maybe<ProgressDialog> progress{};
 
+   // filePathArray contains either files or dirs
+   Q_ASSERT( !(bFiles && bDirs) );
 
-   if (message)
+   // TODO: what this flag actually means is disable logging
+   // of files that prevented deletion of dirs
+   //Q_ASSERT( bDirsMustBeEmpty );
+
+   if (!message.isEmpty())
       progress.create( _("Progress"), message );
 
-   auto nn = filePathArray.size();
-   for (unsigned int i = 0; i < nn; i++) {
-      const wxChar *file = filePathArray[i];
-      if (bFiles)
-         ::wxRemoveFile(file);
-      if (bDirs) {
-         // continue will go to the next item, and skip
-         // attempting to delete the directory.
-         if( bDirsMustBeEmpty ){
-            wxDir dir( file );
-            if( !dir.IsOpened() )
-               continue;
-            if( dir.HasFiles() )
-               continue;
-            if( dir.HasSubDirs() )
-               continue;
-         }
+   for (int i = 0; i < filePathArray.count(); i++)
+   {
+      const auto& file = filePathArray[i];
 
-#ifdef __WXMSW__
-         if (!bFiles)
-            ::wxRemoveFile(file); // See note above about wxRmdir sometimes incorrectly failing on Windows.
-#endif
-
-         if (! ::wxRmdir(file) ) {
-            wxDir dir(file);
-            if(dir.IsOpened()) {
-               wxLogMessage(file + wxString(" still contains:"));
-               wxString name;
-               auto cont = dir.GetFirst(&name);
-               while ( cont ) {
-                  wxLogMessage(file + wxString(wxFILE_SEP_PATH) + name );
-                  cont = dir.GetNext(&name);
-               }
-            }
-            else
-               wxLogMessage(wxString("Can't enumerate directory ") + file);
-         }
-      }
       if (progress)
          progress->Update(i + bias, count);
+
+      if (bFiles)
+      {
+         //qDebug() << "Removing file: " << file;
+         QFile::remove(file);
+      }
+      else
+      if (bDirs)
+      {
+         QDir dir(file);
+         if (!dir.exists())
+         {
+            //qDebug() << "Tried to delete non-existent dir: " << file;
+            continue;
+         }
+
+         if (bDirsMustBeEmpty && !dir.isEmpty())
+         {
+            //qDebug() << "Dir is not empty: " << file;
+            continue;
+         }
+
+         // note: not a recursive delete, dir must be empty
+         // the wx version uses wxRmdir, which behaves the same!
+         //qDebug() << "Removing dir:  " << file;
+         QString dirName = dir.dirName();
+         if (!dir.cdUp() || !dir.rmdir(dirName))
+         {
+            qInfo() << "Failed to remove: " << file;
+            dir.cd(dirName);
+            for (const auto& entry : dir.entryList(QStringList{wxT("*")}, QDir::NoDotAndDotDot))
+               qInfo() << dir.relativeFilePath(entry);
+         }
+      }
    }
 }
 
@@ -361,14 +381,14 @@ static void RecursivelyRemove(wxArrayString& filePathArray, int count, int bias,
 //
 
 // Static class variables
-wxString DirManager::globaltemp;
+QString DirManager::globaltemp;
 int DirManager::numDirManagers = 0;
 bool DirManager::dontDeleteTempFiles = false;
 
 
 DirManager::DirManager()
 {
-   wxLogDebug(wxT("DirManager: Created new instance."));
+   qDebug(wxT("DirManager: Created new instance."));
 
    mLastBlockFileDestructionCount = BlockFile::gBlockFileDestructionCount;
 
@@ -384,15 +404,24 @@ DirManager::DirManager()
    // and make sure it is not used already. This will not pose any performance
    // penalties as long as the number of open Audacity projects is much
    // lower than RAND_MAX.
+
+   // TODO: maybe this came from a bad preference and we can recover
+   if (!QDir(globaltemp).exists())
+   {
+      qCritical(wxT("DirManager: Temp directory does not exist: %s"),
+             qPrintable(globaltemp));
+      THROW_INCONSISTENCY_EXCEPTION;
+   }
+
    do {
-      mytemp = globaltemp + wxFILE_SEP_PATH +
-               wxString::Format(wxT("project%d"), rand());
-   } while (wxDirExists(mytemp));
+      mytemp = globaltemp + PLATFORM_PATH_SEPARATOR +
+               QString(wxT("project%1")).arg(rand());
+   } while (QFileInfo(mytemp).exists());
 
    numDirManagers++;
 
-   projPath = wxT("");
-   projName = wxT("");
+   projPath = QString();
+   projName = QString();
 
    mLoadingTarget = NULL;
    mLoadingTargetIdx = 0;
@@ -408,12 +437,10 @@ DirManager::DirManager()
    }
 
    // Make sure there is plenty of space for temp files
-   wxLongLong freeSpace = 0;
-   if (wxGetDiskSpace(globaltemp, NULL, &freeSpace)) {
-      if (freeSpace < wxLongLong(wxLL(100 * 1048576))) {
-         ShowWarningDialog(NULL, wxT("DiskSpaceWarning"),
-                           _("There is very little free disk space left on this volume.\nPlease select another temporary directory in Preferences."));
-      }
+   QStorageInfo info(globaltemp);
+   if (info.bytesAvailable() < 100*1024*1024) {
+      qCritical() << wxT("DiskSpaceWarning: ")
+                  << _("There is very little free disk space left on this volume.\nPlease select another temporary directory in Preferences.");
    }
 }
 
@@ -423,8 +450,8 @@ DirManager::~DirManager()
    if (numDirManagers == 0) {
       CleanTempDir();
       //::wxRmdir(temp);
-   } else if( projFull.IsEmpty() && !mytemp.IsEmpty()) {
-      CleanDir(mytemp, wxEmptyString, ".DS_Store", _("Cleaning project temporary files"), kCleanTopDirToo | kCleanDirsOnlyIfEmpty );
+   } else if( projFull.isEmpty() && !mytemp.isEmpty()) {
+      CleanDir(mytemp, wxT("*"), wxT(".DS_Store"), _("Cleaning project temporary files"), kCleanTopDirToo | kCleanDirsOnlyIfEmpty );
    }
 }
 
@@ -437,21 +464,21 @@ void DirManager::CleanTempDir()
 {
    // with default flags (none) this does not clean the top directory, and may remove non-empty 
    // directories.
-   CleanDir(globaltemp, wxT("project*"), wxEmptyString, _("Cleaning up temporary files"));
+   CleanDir(globaltemp, wxT("project*"), wxT("*"), _("Cleaning up temporary files"));
 }
 
 // static
 void DirManager::CleanDir(
-   const wxString &path, 
-   const wxString &dirSpec, 
-   const wxString &fileSpec, 
-   const wxString &msg,
+   const QString &path,
+   const QString &dirSpec,
+   const QString &fileSpec,
+   const QString &msg,
    int flags)
 {
    if (dontDeleteTempFiles)
       return; // do nothing
 
-   wxArrayString filePathArray, dirPathArray;
+   QStringList filePathArray, dirPathArray;
 
    int countFiles =
       RecursivelyEnumerate(path, filePathArray, dirSpec, fileSpec, true, false);
@@ -460,10 +487,10 @@ void DirManager::CleanDir(
 
    // Subtract 1 because we don't want to DELETE the global temp directory,
    // which this will find and list last.
-   if ((flags & kCleanTopDirToo)==0) {
+   if (countDirs > 0 && (flags & kCleanTopDirToo)==0) {
       // Remove the globaltemp itself from the array so that it is not deleted.
       --countDirs;
-      dirPathArray.resize(countDirs);
+      dirPathArray.removeLast();
    }
 
    auto count = countFiles + countDirs;
@@ -474,43 +501,25 @@ void DirManager::CleanDir(
    RecursivelyRemove(dirPathArray, count, countFiles, flags | kCleanDirs, msg);
 }
 
-bool DirManager::SetProject(wxString& newProjPath, wxString& newProjName, const bool bCreate)
+bool DirManager::SetProject(const QString& newProjPath, const QString& newProjName, const bool bCreate)
 {
-   bool moving = true;
-   wxString oldPath = this->projPath;
-   wxString oldName = this->projName;
-   wxString oldFull = projFull;
-   wxString oldLoc = projFull;
-   if (oldLoc == wxT(""))
-      oldLoc = mytemp;
-
-   if (newProjPath == wxT(""))
-      newProjPath = ::wxGetCwd();
-
-   this->projPath = newProjPath;
-   this->projName = newProjName;
-   if (newProjPath.Last() == wxFILE_SEP_PATH)
-      this->projFull = newProjPath + newProjName;
-   else
-      this->projFull = newProjPath + wxFILE_SEP_PATH + newProjName;
-
-   wxString cleanupLoc1=oldLoc;
-   wxString cleanupLoc2=projFull;
+   QDir newProjDir(newProjPath);
+   if (!newProjDir.exists()) {
+      qWarning() << wxT("DirManager: new project parent dir does not exist");
+      return false;
+   }
 
    bool created = false;
 
-   if (bCreate) {
-      if (!wxDirExists(projFull)) {
-         if (!wxMkdir(projFull)) {
-            this->projFull = oldFull;
-            this->projPath = oldPath;
-            this->projName = oldName;
-            return false;
-         }
-         else
-            created = true;
+   if (!newProjDir.exists(newProjName) && bCreate) {
+      if (!newProjDir.mkdir(newProjName)) {
+         qErrnoWarning(wxT("DirManager: failed to create project dir"));
+         return false;
       }
+      else
+         created = true;
 
+      // FIXME: override the umask on unix/mac ... ?
       #ifdef __UNIX__
       chmod(OSFILENAME(projFull), 0775);
       #endif
@@ -518,15 +527,21 @@ bool DirManager::SetProject(wxString& newProjPath, wxString& newProjName, const 
       #ifdef __WXMAC__
       chmod(OSFILENAME(projFull), 0775);
       #endif
-
-   } else {
-      if (!wxDirExists(projFull)) {
-         this->projFull = oldFull;
-         this->projPath = oldPath;
-         this->projName = oldName;
-         return false;
-      }
    }
+   else
+      return false;
+
+   const QString oldPath = this->projPath;
+   const QString oldName = this->projName;
+   const QString oldFull = projFull;
+   const QString oldLoc  = projFull.isEmpty() ? mytemp : projFull;
+
+   this->projPath = newProjPath;
+   this->projName = newProjName;
+   this->projFull = newProjDir.absoluteFilePath(newProjName);
+
+   QString cleanupLoc1 = oldLoc;
+   QString cleanupLoc2 = projFull;
 
    /* Move all files into this NEW directory.  Files which are
       "locked" get copied instead of moved.  (This happens when
@@ -535,6 +550,7 @@ bool DirManager::SetProject(wxString& newProjPath, wxString& newProjName, const 
       otherwise the old project would not be safe.) */
 
    int trueTotal = 0;
+   bool moving = true;
 
    {
       /*i18n-hint: This title appears on a dialog that indicates the progress in doing something.*/
@@ -545,10 +561,9 @@ bool DirManager::SetProject(wxString& newProjPath, wxString& newProjName, const 
 
       bool success = true;
       int count = 0;
-      wxArrayString newPaths;
-      for (const auto &pair : mBlockFileHash)
-      {
-         wxString newPath;
+      QStringList newPaths;
+      for (const auto &pair : mBlockFileHash) {
+         QString newPath;
          BlockFilePtr b = pair.second.lock();
          if (b) {
             // FIXME: TRAP_ERR
@@ -558,7 +573,7 @@ bool DirManager::SetProject(wxString& newProjPath, wxString& newProjName, const 
             // our temporary files are going to be deleted when we exit 
             // anyway, if saving from temporary to named project.
 
-            if( progress.Update(count, total) != ProgressResult::Success )
+            if (progress.Update(count, total) != ProgressDialog::Success)
                success = false;
             else {
                moving = moving && !b->IsLocked();
@@ -567,9 +582,8 @@ bool DirManager::SetProject(wxString& newProjPath, wxString& newProjName, const 
                newPath = result.second;
             }
 
-            if (success) {
+            if (success)
                count++;
-            }
             else
                break;
          }
@@ -582,7 +596,7 @@ bool DirManager::SetProject(wxString& newProjPath, wxString& newProjName, const 
 
       if (success) {
          auto size = newPaths.size();
-         wxASSERT( size == mBlockFileHash.size() );
+         Q_ASSERT( (size_t)size == mBlockFileHash.size() );
 
          // Commit changes to filenames in the BlockFile objects, and removal
          // of files at old paths, ONLY NOW!  This must be nothrow.
@@ -603,22 +617,22 @@ bool DirManager::SetProject(wxString& newProjPath, wxString& newProjName, const 
          // I will err on the side of safety and simplicity and follow the
          // same procedure in all cases.
 
-         size_t ii = 0;
+         int ii = 0;
          for (const auto &pair : mBlockFileHash)
          {
             BlockFilePtr b = pair.second.lock();
 
             if (b) {
                if (moving || !b->IsLocked()) {
-                  auto result = b->GetFileName();
-                  auto oldPath = result.name.GetFullPath();
-                  if (!oldPath.empty())
-                     wxRemoveFile( oldPath );
+                  auto oldPath = b->GetFileName();
+                  if (!oldPath.isEmpty() && QFile::exists(oldPath) && !QFile(oldPath).remove())
+                     qErrnoWarning(wxT("Failure to remove old block file: %s"),
+                                   qPrintable(oldPath));
                }
 
                if (ii < size)
-                  b->SetFileName(
-                     wxFileNameWrapper{ wxFileName{ newPaths[ii] } } );
+                  b->SetFileName(newPaths[ii]);
+                     //wxFileNameWrapper{ wxFileName{ newPaths[ii] } } );
             }
 
             ++ii;
@@ -630,10 +644,7 @@ bool DirManager::SetProject(wxString& newProjPath, wxString& newProjName, const 
          this->projName = oldName;
 
          if (created)
-            CleanDir(
-               cleanupLoc2,
-               wxEmptyString,
-               wxEmptyString,
+            CleanDir(cleanupLoc2, wxT("*"), wxT("*"),
                _("Cleaning up after failed save"),
                kCleanTopDirToo);
 
@@ -663,8 +674,8 @@ bool DirManager::SetProject(wxString& newProjPath, wxString& newProjName, const 
 
       CleanDir(
          cleanupLoc1, 
-         wxEmptyString, // EmptyString => ALL directories.
-         // If the next line were wxEmptyString, ALL files would be removed.
+         wxT("*"), // ALL directories.
+         // If the next line were *, ALL files would be removed.
          ".DS_Store",   // Other project files should already have been removed.
          _("Cleaning up cache directories"), 
          kCleanTopDirToo);
@@ -676,112 +687,116 @@ bool DirManager::SetProject(wxString& newProjPath, wxString& newProjName, const 
    return true;
 }
 
-wxString DirManager::GetProjectDataDir()
+int64_t DirManager::GetFreeDiskSpace()
 {
-   return projFull;
-}
-
-wxString DirManager::GetProjectName()
-{
-   return projName;
-}
-
-wxLongLong DirManager::GetFreeDiskSpace()
-{
-   wxLongLong freeSpace = -1;
-   wxFileName path;
-
-   path.SetPath(projPath.IsEmpty() ? mytemp : projPath);
+   // Use tmp dir if no project is set
+   QString path = projPath;
+   if (path.isEmpty())
+      path = mytemp;
 
    // Use the parent directory if the project directory hasn't yet been created
-   if (!path.DirExists())
-   {
-      path.RemoveLastDir();
-   }
+   QDir dir(path);
+   if (!dir.exists())
+      dir.cdUp();
 
-   if (!wxGetDiskSpace(path.GetFullPath(), NULL, &freeSpace))
-   {
-      freeSpace = -1;
-   }
-
-   return freeSpace;
+   // returns -1 if there's a problem
+   return QStorageInfo(dir).bytesAvailable();
 }
 
-wxString DirManager::GetDataFilesDir() const
+QString DirManager::GetDataFilesDir() const
 {
-   return projFull != wxT("")? projFull: mytemp;
+   return projFull.isEmpty() ? mytemp : projFull;
 }
 
-void DirManager::SetLocalTempDir(const wxString &path)
+void DirManager::SetLocalTempDir(const QString &path)
 {
    mytemp = path;
 }
 
-wxFileNameWrapper DirManager::MakeBlockFilePath(const wxString &value) {
+QString DirManager::MakeBlockFilePath(const QString &value)
+{
+   QDir dir(GetDataFilesDir());
 
-   wxFileNameWrapper dir;
-   dir.AssignDir(GetDataFilesDir());
+   // dir might not exist, if SetProject wasn't called for example
+   if (!dir.exists())
+   {
+      const QString name = dir.dirName();
+      if (!dir.cdUp() ||
+          !dir.mkdir(name) ||
+          !dir.cd(name))
+         qErrnoWarning("Failed to create project dir: %s", qPrintable(name));
+   }
 
-   if(value.GetChar(0)==wxT('d')){
+   if (value.at(0)==wxT('d'))
+   {
       // this file is located in a subdirectory tree
-      int location=value.Find(wxT('b'));
-      wxString subdir=value.Mid(0,location);
-      dir.AppendDir(subdir);
+      int location = value.indexOf(wxT('b'));
+      const QString subdir = value.mid(0,location);
 
-      if(!dir.DirExists())
-         dir.Mkdir();
+      if (!dir.exists(subdir) && !dir.mkdir(subdir))
+         qErrnoWarning("Failed to create 1st level dir: %s", qPrintable(subdir));
+
+      dir.cd(subdir);
    }
-
-   if(value.GetChar(0)==wxT('e')){
+   else
+   if (value.at(0)==wxT('e'))
+   {
       // this file is located in a NEW style two-deep subdirectory tree
-      wxString topdir=value.Mid(0,3);
-      wxString middir=wxT("d");
-      middir.Append(value.Mid(3,2));
+      QString topdir=value.mid(0,3);
+      QString middir=wxT("d") + value.mid(3,2);
 
-      dir.AppendDir(topdir);
-      dir.AppendDir(middir);
+      if (!dir.exists(topdir) && !dir.mkdir(topdir))
+         qErrnoWarning("Failed to create 1st level dir: %s", qPrintable(topdir));
 
-      if(!dir.DirExists() && !dir.Mkdir(0777,wxPATH_MKDIR_FULL))
-      { // need braces to avoid compiler warning about ambiguous else, see the macro
-         wxLogSysError(_("mkdir in DirManager::MakeBlockFilePath failed."));
-      }
+      dir.cd(topdir);
+
+      if (!dir.exists(middir) && !dir.mkdir(middir))
+         qErrnoWarning("Failed to create 2nd level dir: %s", qPrintable(middir));
+
+      dir.cd(middir);
    }
-   return dir;
+
+   if (!dir.exists())
+      qCritical() << _("mkdir in DirManager::MakeBlockFilePath failed.");
+
+   return dir.absolutePath();
 }
 
-bool DirManager::AssignFile(wxFileNameWrapper &fileName,
-                            const wxString &value,
+bool DirManager::AssignFile(QString &fileName,
+                            const QString &value,
                             bool diskcheck)
 {
-   wxFileNameWrapper dir{ MakeBlockFilePath(value) };
+   //wxFileNameWrapper dir{ MakeBlockFilePath(value) };
+   QDir dir(MakeBlockFilePath(value));
 
    if(diskcheck){
       // verify that there's no possible collision on disk.  If there
       // is, log the problem and return FALSE so that MakeBlockFileName
       // can try again
 
-      wxDir checkit(dir.GetFullPath());
-      if(!checkit.IsOpened()) return FALSE;
 
-      // this code is only valid if 'value' has no extention; that
+      //--wxDir checkit(dir.GetFullPath());
+      //--if(!checkit.IsOpened()) return FALSE;
+      // we don't have an Opened() test on Qt, I think this will suffice
+      if (!dir.exists() || !dir.isReadable())
+         return false;
+
+      // this code is only valid if 'value' has no extension; that
       // means, effectively, AssignFile may be called with 'diskcheck'
       // set to true only if called from MakeFileBlockName().
 
-      wxString filespec;
-      filespec.Printf(wxT("%s.*"),value);
-      if(checkit.HasFiles(filespec)){
-         // collision with on-disk state!
-         wxString collision;
-         checkit.GetFirst(&collision,filespec);
+      auto list = dir.entryList(QStringList(value+wxT(".*")), QDir::Files);
+      if (list.count() > 0)
+      {
+         qCritical() << _("Audacity found an orphan block file: %1. \nPlease consider saving and reloading the project to perform a complete project check.")
+                   .arg(list[0]);
 
-         wxLogWarning(_("Audacity found an orphan block file: %s. \nPlease consider saving and reloading the project to perform a complete project check."),
-                      collision);
-
-         return FALSE;
+         return false;
       }
    }
-   fileName.Assign(dir.GetFullPath(),value);
-   return fileName.IsOk();
+
+   fileName = dir.absoluteFilePath(value);
+   return true;
 }
 
 static inline unsigned int hexchar_to_int(unsigned int x)
@@ -842,9 +857,9 @@ void DirManager::BalanceFileAdd(int midkey)
    }
 }
 
-void DirManager::BalanceInfoAdd(const wxString &file)
+void DirManager::BalanceInfoAdd(const QString &file)
 {
-   const wxChar *s=file;
+   const QByteArray s=file.toLatin1();
    if(s[0]==wxT('e')){
       // this is one of the modern two-deep managed files
       // convert filename to keys
@@ -889,7 +904,7 @@ auto DirManager::GetBalanceInfo() -> BalanceInfo &
 // Note that this will try to clean up directories out from under even
 // locked blockfiles; this is actually harmless as the rmdir will fail
 // on non-empty directories.
-void DirManager::BalanceInfoDel(const wxString &file)
+void DirManager::BalanceInfoDel(const QString &file)
 {
    // do not use GetBalanceInfo(),
    // rather this function will be called from there.
@@ -899,7 +914,7 @@ void DirManager::BalanceInfoDel(const wxString &file)
    auto &dirTopPool = balanceInfo.dirTopPool;
    auto &dirTopFull = balanceInfo.dirTopFull;
 
-   const wxChar *s=file;
+   const QByteArray s=file.toLatin1();
    if(s[0]==wxT('e')){
       // this is one of the modern two-deep managed files
 
@@ -925,13 +940,12 @@ void DirManager::BalanceInfoDel(const wxString &file)
             dirMidPool.erase(midkey);
 
             // DELETE the actual directory
-            wxString dir=(projFull != wxT("")? projFull: mytemp);
-            dir += wxFILE_SEP_PATH;
-            dir += file.Mid(0,3);
-            dir += wxFILE_SEP_PATH;
-            dir += wxT("d");
-            dir += file.Mid(3,2);
-            wxFileName::Rmdir(dir);
+            const QString topDir = file.mid(0,3);
+            const QString midDir = wxT("d") + file.mid(3,2);
+
+            QDir dir(projFull.isEmpty() ? mytemp : projFull);
+            dir.cd(topDir);
+            dir.rmdir(midDir);
 
             // also need to remove from toplevel
             if(dirTopFull.find(topnum) != dirTopFull.end()){
@@ -945,10 +959,8 @@ void DirManager::BalanceInfoDel(const wxString &file)
                if(--dirTopPool[topnum]<1){
                   // do *not* erase the hash entry from dirTopPool
                   // *do* DELETE the actual directory
-                  wxString dir=(projFull != wxT("")? projFull: mytemp);
-                  dir += wxFILE_SEP_PATH;
-                  dir += file.Mid(0,3);
-                  wxFileName::Rmdir(dir);
+                  dir.cdUp();
+                  dir.rmdir(topDir);
                }
             }
          }
@@ -958,15 +970,15 @@ void DirManager::BalanceInfoDel(const wxString &file)
 
 // only determines appropriate filename and subdir balance; does not
 // perform maintainence
-wxFileNameWrapper DirManager::MakeBlockFileName()
+QString DirManager::MakeBlockFileName()
 {
    auto &balanceInfo = GetBalanceInfo();
    auto &dirMidPool = balanceInfo.dirMidPool;
    auto &dirTopPool = balanceInfo.dirTopPool;
    auto &dirTopFull = balanceInfo.dirTopFull;
 
-   wxFileNameWrapper ret;
-   wxString baseFileName;
+   QString ret;
+   QString baseFileName;
 
    unsigned int filenum,midnum,topnum,midkey;
 
@@ -1050,7 +1062,7 @@ wxFileNameWrapper DirManager::MakeBlockFileName()
 
       }
 
-      baseFileName.Printf(wxT("e%02x%02x%03x"),topnum,midnum,filenum);
+      baseFileName = QString::asprintf(wxT("e%02x%02x%03x"),topnum,midnum,filenum);
 
       if (!ContainsBlockFile(baseFileName)) {
          // not in the hash, good.
@@ -1079,11 +1091,11 @@ BlockFilePtr DirManager::NewSimpleBlockFile(
                                  sampleFormat format,
                                  bool allowDeferredWrite)
 {
-   wxFileNameWrapper filePath{ MakeBlockFileName() };
-   const wxString fileName{ filePath.GetName() };
+   const QString filePath{ MakeBlockFileName() };
+   const QString fileName{ QFileInfo(filePath).baseName() };
 
    auto newBlockFile = make_blockfile<SimpleBlockFile>
-      (std::move(filePath), sampleData, sampleLen, format, allowDeferredWrite);
+      (filePath, sampleData, sampleLen, format, allowDeferredWrite);
 
    mBlockFileHash[fileName] = newBlockFile;
 
@@ -1091,52 +1103,49 @@ BlockFilePtr DirManager::NewSimpleBlockFile(
 }
 
 BlockFilePtr DirManager::NewAliasBlockFile(
-                                 const wxString &aliasedFile, sampleCount aliasStart,
+                                 const QString &aliasedFile, sampleCount aliasStart,
                                  size_t aliasLen, int aliasChannel)
 {
-   wxFileNameWrapper filePath{ MakeBlockFileName() };
-   const wxString fileName = filePath.GetName();
+   const QString filePath{ MakeBlockFileName() };
+   const QString fileName{ QFileInfo(filePath).baseName() };
 
    auto newBlockFile = make_blockfile<PCMAliasBlockFile>
-      (std::move(filePath), wxFileNameWrapper{aliasedFile},
-       aliasStart, aliasLen, aliasChannel);
+      (filePath, aliasedFile, aliasStart, aliasLen, aliasChannel);
 
    mBlockFileHash[fileName]=newBlockFile;
-   aliasList.Add(aliasedFile);
+   aliasList.append(aliasedFile);
 
    return newBlockFile;
 }
 
 BlockFilePtr DirManager::NewODAliasBlockFile(
-                                 const wxString &aliasedFile, sampleCount aliasStart,
+                                 const QString &aliasedFile, sampleCount aliasStart,
                                  size_t aliasLen, int aliasChannel)
 {
-   wxFileNameWrapper filePath{ MakeBlockFileName() };
-   const wxString fileName{ filePath.GetName() };
+   const QString filePath{ MakeBlockFileName() };
+   const QString fileName{ QFileInfo(filePath).baseName() };
 
    auto newBlockFile = make_blockfile<ODPCMAliasBlockFile>
-      (std::move(filePath), wxFileNameWrapper{aliasedFile},
-       aliasStart, aliasLen, aliasChannel);
+      (filePath, aliasedFile, aliasStart, aliasLen, aliasChannel);
 
    mBlockFileHash[fileName]=newBlockFile;
-   aliasList.Add(aliasedFile);
+   aliasList.append(aliasedFile);
 
    return newBlockFile;
 }
 
 BlockFilePtr DirManager::NewODDecodeBlockFile(
-                                 const wxString &aliasedFile, sampleCount aliasStart,
+                                 const QString &aliasedFile, sampleCount aliasStart,
                                  size_t aliasLen, int aliasChannel, int decodeType)
 {
-   wxFileNameWrapper filePath{ MakeBlockFileName() };
-   const wxString fileName{ filePath.GetName() };
+   const QString filePath{ MakeBlockFileName() };
+   const QString fileName{ QFileInfo(filePath).baseName() };
 
    auto newBlockFile = make_blockfile<ODDecodeBlockFile>
-      (std::move(filePath), wxFileNameWrapper{ aliasedFile },
-       aliasStart, aliasLen, aliasChannel, decodeType);
+      (filePath, aliasedFile, aliasStart, aliasLen, aliasChannel, decodeType);
 
    mBlockFileHash[fileName]=newBlockFile;
-   aliasList.Add(aliasedFile); //OD TODO: check to see if we need to remove this when done decoding.
+   aliasList.append(aliasedFile); //OD TODO: check to see if we need to remove this when done decoding.
                                //I don't immediately see a place where aliased files remove when a file is closed.
 
    return newBlockFile;
@@ -1147,14 +1156,14 @@ bool DirManager::ContainsBlockFile(const BlockFile *b) const
    if (!b)
       return false;
    auto result = b->GetFileName();
-   BlockHash::const_iterator it = mBlockFileHash.find(result.name.GetName());
+   BlockHash::const_iterator it = mBlockFileHash.find( QFileInfo(result).baseName() );
    if (it == mBlockFileHash.end())
       return false;
    BlockFilePtr ptr = it->second.lock();
    return ptr && (b == &*ptr);
 }
 
-bool DirManager::ContainsBlockFile(const wxString &filepath) const
+bool DirManager::ContainsBlockFile(const QString &filepath) const
 {
    // check what the hash returns in case the blockfile is from a different project
    BlockHash::const_iterator it = mBlockFileHash.find(filepath);
@@ -1172,7 +1181,7 @@ BlockFilePtr DirManager::CopyBlockFile(const BlockFilePtr &b)
       THROW_INCONSISTENCY_EXCEPTION;
 
    auto result = b->GetFileName();
-   const auto &fn = result.name;
+   const auto &fn = result;
 
    if (!b->IsLocked()) {
       //mchinen:July 13 2009 - not sure about this, but it needs to be added to the hash to be able to save if not locked.
@@ -1180,45 +1189,47 @@ BlockFilePtr DirManager::CopyBlockFile(const BlockFilePtr &b)
       //but it's something to watch out for.
       //
       // LLL: Except for silent block files which have uninitialized filename.
-      if (fn.IsOk())
-         mBlockFileHash[fn.GetName()] = b;
+      if (!fn.isEmpty())
+         mBlockFileHash[ QFileInfo(fn).baseName() ] = b;
       return b;
    }
 
    // Copy the blockfile
    BlockFilePtr b2;
-   if (!fn.IsOk())
+   if (fn.isEmpty())
       // Block files with uninitialized filename (i.e. SilentBlockFile)
       // just need an in-memory copy.
-      b2 = b->Copy(wxFileNameWrapper{});
+      b2 = b->Copy(QString());
    else
    {
-      wxFileNameWrapper newFile{ MakeBlockFileName() };
-      const wxString newName{newFile.GetName()};
-      const wxString newPath{ newFile.GetFullPath() };
+      QString newFile{ MakeBlockFileName() };
+      const QString newName{ QFileInfo(newFile).baseName() };
+      const QString newPath{ QFileInfo(newFile).absoluteFilePath() };
 
       // We assume that the NEW file should have the same extension
       // as the existing file
-      newFile.SetExt(fn.GetExt());
+      newFile += "." + QFileInfo(fn).suffix();
 
       //some block files such as ODPCMAliasBlockFIle don't always have
       //a summary file, so we should check before we copy.
       if(b->IsSummaryAvailable())
       {
-         if( !FileNames::CopyFile(fn.GetFullPath(),
-                  newFile.GetFullPath()) )
+         //if( !FileNames::CopyFile(fn, newFile) )
+         // copy() will not overwrite, but we want this
+         QFile::remove(newFile);
+         if (! QFile(fn).copy(newFile) )
             // Disk space exhaustion, maybe
             throw FileException{
                FileException::Cause::Write, newFile };
       }
 
       // Done with fn
-      result.mLocker.reset();
+      //--result.mLocker.reset();
 
-      b2 = b->Copy(std::move(newFile));
+      b2 = b->Copy(newFile);
 
       mBlockFileHash[newName] = b2;
-      aliasList.Add(newPath);
+      aliasList.append(newPath);
    }
 
    if (!b2)
@@ -1227,7 +1238,7 @@ BlockFilePtr DirManager::CopyBlockFile(const BlockFilePtr &b)
    return b2;
 }
 
-bool DirManager::HandleXMLTag(const wxChar *tag, const wxChar **attrs)
+bool DirManager::HandleXMLTag(const QString &tag, const QStringMap &attrs)
 {
    if( mLoadingTarget == NULL )
       return false;
@@ -1236,33 +1247,39 @@ bool DirManager::HandleXMLTag(const wxChar *tag, const wxChar **attrs)
 
    BlockFilePtr &target = mLoadingTarget->at(mLoadingTargetIdx).f;
    
-   if (!wxStricmp(tag, wxT("silentblockfile"))) {
+   if (tag == wxT("silentblockfile")) {
       // Silent blocks don't actually have a file associated, so
       // we don't need to worry about the hash table at all
       target = SilentBlockFile::BuildFromXML(*this, attrs);
       return true;
    }
-   else if ( !wxStricmp(tag, wxT("simpleblockfile")) )
+   else if (tag == wxT("simpleblockfile"))
       pBlockFile = SimpleBlockFile::BuildFromXML(*this, attrs);
-   else if( !wxStricmp(tag, wxT("pcmaliasblockfile")) )
+   else if (tag == wxT("pcmaliasblockfile"))
       pBlockFile = PCMAliasBlockFile::BuildFromXML(*this, attrs);
-   else if( !wxStricmp(tag, wxT("odpcmaliasblockfile")) )
+   else if (tag == wxT("odpcmaliasblockfile"))
    {
       pBlockFile = ODPCMAliasBlockFile::BuildFromXML(*this, attrs);
       //in the case of loading an OD file, we need to schedule the ODManager to begin OD computing of summary
       //However, because we don't have access to the track or even the Sequence from this call, we mark a flag
       //in the ODMan and check it later.
-      ODManager::MarkLoadedODFlag();
+
+      // PORTME ODManager
+      //ODManager::MarkLoadedODFlag();
    }
-   else if( !wxStricmp(tag, wxT("oddecodeblockfile")) )
+   else if (tag == wxT("oddecodeblockfile"))
    {
       pBlockFile = ODDecodeBlockFile::BuildFromXML(*this, attrs);
-      ODManager::MarkLoadedODFlag();
-   }
-   else if( !wxStricmp(tag, wxT("blockfile")) ||
-            !wxStricmp(tag, wxT("legacyblockfile")) ) {
-      // Support Audacity version 1.1.1 project files
 
+      // PORTME ODManager
+      //ODManager::MarkLoadedODFlag();
+   }
+   else if (tag == wxT("blockfile") ||
+            tag == wxT("legacyblockfile") ) {
+
+      qCritical("Legacy block files are unsupported!");
+/**--
+      // Support Audacity version 1.1.1 project files
       int i=0;
       bool alias = false;
 
@@ -1282,6 +1299,7 @@ bool DirManager::HandleXMLTag(const wxChar *tag, const wxChar **attrs)
          pBlockFile = LegacyBlockFile::BuildFromXML(projFull, attrs,
                                                          mLoadingBlockLen,
                                                          mLoadingFormat);
+--**/
    }
    else
       return false;
@@ -1308,7 +1326,7 @@ bool DirManager::HandleXMLTag(const wxChar *tag, const wxChar **attrs)
    // return a reference to the existing object instead.
    //
 
-   wxString name = target->GetFileName().name.GetName();
+   const QString name = QFileInfo(target->GetFileName()).baseName();
    auto &wRetrieved = mBlockFileHash[name];
    BlockFilePtr retrieved = wRetrieved.lock();
    if (retrieved) {
@@ -1329,37 +1347,44 @@ bool DirManager::HandleXMLTag(const wxChar *tag, const wxChar **attrs)
    return true;
 }
 
-std::pair<bool, wxString> DirManager::CopyToNewProjectDirectory(BlockFile *f)
+std::pair<bool, QString> DirManager::CopyToNewProjectDirectory(BlockFile *f)
 {
-   wxString newPath;
-   auto result = f->GetFileName();
-   const auto &oldFileNameRef = result.name;
+   QString newPath;
+   const QString oldFileName = f->GetFileName();
+
+   //--const auto &oldFileNameRef = result.name;
 
    // Check that this BlockFile corresponds to a file on disk
    //ANSWER-ME: Is this checking only for SilentBlockFiles, in which case
    //    (!oldFileName.IsOk()) is a more correct check?
-   if (oldFileNameRef.GetName().IsEmpty()) {
+   //-- if (oldFileNameRef.GetName().IsEmpty()) {
+   if (oldFileName.isEmpty()) {
       return { true, newPath };
    }
 
-   wxFileNameWrapper newFileName;
-   if (!this->AssignFile(newFileName, oldFileNameRef.GetFullName(), false)
+   QString newFileName;
+   if (!this->AssignFile(newFileName, QFileInfo(oldFileName).fileName(), false)
        // Another sanity check against blockfiles getting reassigned an empty
        // name, as apparently happened in
        // http://forum.audacityteam.org/viewtopic.php?f=47&t=97787 :
-       || newFileName.GetFullName().empty() )
+       || newFileName.isEmpty() )
       return { false, {} };
 
-   newPath = newFileName.GetFullPath();
+   newPath = newFileName;
 
-   if (newFileName != oldFileNameRef) {
+   if (newFileName != oldFileName) {
       //check to see that summary exists before we copy.
       bool summaryExisted = f->IsSummaryAvailable();
-      auto oldPath = oldFileNameRef.GetFullPath();
+      auto oldPath = oldFileName;
       if (summaryExisted) {
-         auto success = FileNames::CopyFile(oldPath, newPath);
+         QFile::remove(newPath);
+         auto success = qCopyFile(oldPath, newPath);
          if (!success)
+         {
+            qErrnoWarning(wxT("Failed to copy: %s to %s"),
+                          qPrintable(oldPath), qPrintable(newPath));
             return { false, {} };
+         }
       }
 
       if (!summaryExisted && (f->IsSummaryAvailable() || f->IsSummaryBeingComputed())) {
@@ -1368,13 +1393,13 @@ std::pair<bool, wxString> DirManager::CopyToNewProjectDirectory(BlockFile *f)
          // circumstance.
 
          // We will need to remember the old file name, so copy it
-         wxFileName oldFileName{ oldFileNameRef };
+         //--wxFileName oldFileName{ oldFileNameRef };
 
          // Now we can free any lock (and should, if as the comment below says, we need
          // the other threads to progress)
-         result.mLocker.reset();
+         //--result.mLocker.reset();
 
-         f->SetFileName(std::move(newFileName));
+         f->SetFileName(newFileName);
 
          //there is a small chance that the summary has begun to be computed on a different thread with the
          //original filename.  we need to catch this case by waiting for it to finish and then copy.
@@ -1382,13 +1407,17 @@ std::pair<bool, wxString> DirManager::CopyToNewProjectDirectory(BlockFile *f)
          //block to make sure OD files don't get written while we are changing file names.
          //(It is important that OD files set this lock while computing their summary files.)
          while(f->IsSummaryBeingComputed() && !f->IsSummaryAvailable())
-            ::wxMilliSleep(50);
+         {
+            qDebug(wxT("CopyToNewProjectDirectory: waiting for async summary"));
+            QThread::msleep(50);
+         }
 
          //check to make sure the oldfile exists.
          //if it doesn't, we can assume it was written to the NEW name, which is fine.
-         if (oldFileName.FileExists())
+         if (QFileInfo(oldFileName).exists())
          {
-            bool ok = FileNames::CopyFile(oldPath, newPath);
+            QFile::remove(newPath);
+            bool ok = qCopyFile(oldPath, newPath);
             if (!ok)
                return { false, {} };
          }
@@ -1398,13 +1427,13 @@ std::pair<bool, wxString> DirManager::CopyToNewProjectDirectory(BlockFile *f)
    return { true, newPath };
 }
 
-bool DirManager::EnsureSafeFilename(const wxFileName &fName)
+bool DirManager::EnsureSafeFilename(const QString &fName)
 {
    // Quick check: If it's not even in our alias list,
    // then the file name is A-OK.
 
-   const wxString fullPath{fName.GetFullPath()};
-   if (aliasList.Index(fullPath) == wxNOT_FOUND)
+   //--const QString fullPath = {fName.GetFullPath()};
+   if (!aliasList.contains(fName))
       return true;
 
    /* i18n-hint: 'old' is part of a filename used when a file is renamed. */
@@ -1412,49 +1441,45 @@ bool DirManager::EnsureSafeFilename(const wxFileName &fName)
    /* i18n-hint: e.g. Try to go from "mysong.wav" to "mysong-old1.wav". */
    // Keep trying until we find a filename that doesn't exist.
 
-   wxFileNameWrapper renamedFileName{ fName };
+   const QFileInfo info(fName);
+   const QDir dir = info.dir();
+   QString renamedFileName;
    int i = 0;
    do {
       i++;
       /* i18n-hint: This is the pattern for filenames that are created
        * when a file needs to be backed up to a different name.  For
        * example, mysong would become mysong-old1, mysong-old2, etc. */
-      renamedFileName.SetName(wxString::Format(_("%s-old%d"), fName.GetName(), i));
-   } while (renamedFileName.FileExists());
+      //--renamedFileName.SetName(wxString::Format(, fName.GetName(), i));
+      renamedFileName = _("%1-old%2").arg(info.baseName()).arg(i) + "." + info.completeSuffix();
+   } while (dir.exists(renamedFileName));
 
    // Test creating a file by that name to make sure it will
    // be possible to do the rename
 
-   const wxString renamedFullPath{ renamedFileName.GetFullPath() };
-   wxFile testFile(renamedFullPath, wxFile::write);
-   if (!testFile.IsOpened()) {
-      { // need braces to avoid compiler warning about ambiguous else, see the macro
-         wxLogSysError(_("Unable to open/create test file."),
-               renamedFullPath);
-      }
+   const QString renamedFullPath = dir.absoluteFilePath(renamedFileName);
+   QFile testFile(renamedFullPath);
+   if (!testFile.open(QFile::WriteOnly)) {
+      qErrnoWarning(wxT("%s: %s"),
+                    qPrintable(_("Unable to open/create test file.")),
+                    qPrintable(renamedFullPath));
       return false;
    }
 
-   // Close the file prior to renaming.
-   testFile.Close();
-
-   if (!wxRemoveFile(renamedFullPath)) {
-      /* i18n-hint: %s is the name of a file.*/
-      { // need braces to avoid compiler warning about ambiguous else, see the macro
-         wxLogSysError(_("Unable to remove '%s'."),
-            renamedFullPath);
-      }
+   if (!testFile.remove()) {
+      /* i18n-hint: %1 is the name of a file.*/
+      qErrnoWarning(qPrintable(_("Unable to remove '%1'.").arg(renamedFullPath)));
       return false;
    }
 
-   wxPrintf(_("Renamed file: %s\n"), renamedFullPath);
+   /* i18n-hint: %1 is the name of a file.*/
+   qInfo() << _("Renamed file: %1").arg(renamedFullPath);
 
    // Go through our block files and see if any indeed point to
    // the file we're concerned about.  If so, point the block file
    // to the renamed file and when we're done, perform the rename.
-
    bool needToRename = false;
-   wxBusyCursor busy;
+   //--wxBusyCursor busy;
    BlockHash::iterator iter = mBlockFileHash.begin();
    std::vector< BlockFile::ReadLock > readLocks;
    while (iter != mBlockFileHash.end())
@@ -1486,8 +1511,7 @@ bool DirManager::EnsureSafeFilename(const wxFileName &fName)
    }
 
    if (needToRename) {
-      if (!wxRenameFile(fullPath,
-                        renamedFullPath))
+      if (!QFile::rename(fName, renamedFullPath))
       {
          // ACK!!! The renaming was unsuccessful!!!
          // (This shouldn't happen, since we tried creating a
@@ -1496,9 +1520,9 @@ bool DirManager::EnsureSafeFilename(const wxFileName &fName)
          // just in case!!!
 
          // Print error message and cancel the export
-         wxLogSysError(_("Unable to rename '%s' to '%s'."),
-                       fullPath,
-                       renamedFullPath);
+         qErrnoWarning(qPrintable(_("Unable to rename '%1' to '%2'.")
+                       .arg(fName)
+                       .arg(renamedFullPath)));
 
          // Destruction of readLocks puts things back where they were
          return false;
@@ -1516,13 +1540,13 @@ bool DirManager::EnsureSafeFilename(const wxFileName &fName)
 
                if (b->IsAlias() && ab->GetAliasedFileName() == fName)
                {
-                  ab->ChangeAliasedFileName(wxFileNameWrapper{ renamedFileName });
-                  wxPrintf(_("Changed block %s to new alias name\n"),
-                           b->GetFileName().name.GetFullName());
+                  ab->ChangeAliasedFileName(renamedFileName);
+                  qInfo() << _("Changed block %1 to new alias name")
+                             .arg(b->GetFileName());
 
                }
                else if (!b->IsDataAvailable() && db->GetEncodedAudioFilename() == fName) {
-                  db->ChangeAudioFile(wxFileNameWrapper{ renamedFileName });
+                  db->ChangeAudioFile(renamedFileName);
                }
             }
             ++iter;
@@ -1530,8 +1554,8 @@ bool DirManager::EnsureSafeFilename(const wxFileName &fName)
 
       }
 
-      aliasList.Remove(fullPath);
-      aliasList.Add(renamedFullPath);
+      aliasList.removeAll(fName);
+      aliasList.append(renamedFullPath);
    }
 
    // Success!!!  Either we successfully renamed the file,
@@ -1568,26 +1592,27 @@ int DirManager::ProjectFSCK(const bool bForceError, const bool bAutoRecoverMode)
          This error message is about the tags that hold the sequence information.
          The error message is confusing to users in English, and could just say
          "Found problems with <sequence> when checking project file." */
-      wxString msg = _("Project check read faulty Sequence tags.");
-      const wxChar *buttons[] =
-         {_("Close project immediately with no changes"),
-            _("Continue with repairs noted in log, and check for more errors. This will save the project in its current state, unless you \"Close project immediately\" on further error alerts."),
-            NULL};
-      wxLog::FlushActive(); // MultiDialog has "Show Log..." button, so make sure log is current.
-      action = ShowMultiDialog(msg, _("Warning - Problems Reading Sequence Tags"), buttons);
+      const QString msg = _("Project check read faulty Sequence tags.");
+      const QStringList buttons {
+         _("Close project immediately with no changes"),
+         _("Continue with repairs noted in log, and check for more errors. This will save the project in its current state, unless you \"Close project immediately\" on further error alerts.")
+      };
+
+      //--wxLog::FlushActive(); // MultiDialog has "Show Log..." button, so make sure log is current.
+      action = DialogManager::ShowMultiDialog(msg, _("Warning - Problems Reading Sequence Tags"), buttons);
       if (action == 0)
          nResult = FSCKstatus_CLOSE_REQ;
       else
          nResult = FSCKstatus_CHANGED | FSCKstatus_SAVE_AUP;
    }
 
-   wxArrayString filePathArray; // *all* files in the project directory/subdirectories
-   wxString dirPath = (projFull != wxT("") ? projFull : mytemp);
+   QStringList filePathArray; // *all* files in the project directory/subdirectories
+   const QString dirPath = projFull.isEmpty() ? mytemp : projFull;
    RecursivelyEnumerateWithProgress(
       dirPath,
       filePathArray,          // output: all files in project directory tree
-      wxEmptyString,          // All dirs
-      wxEmptyString,          // All files
+      wxT("*"),               // All dirs
+      wxT("*"),               // All files
       true, false,
       mBlockFileHash.size(),  // rough guess of how many BlockFiles will be found/processed, for progress
       _("Inspecting project file data"));
@@ -1595,7 +1620,7 @@ int DirManager::ProjectFSCK(const bool bForceError, const bool bAutoRecoverMode)
    //
    // MISSING ALIASED AUDIO FILES
    //
-   wxGetApp().SetMissingAliasedFileWarningShouldShow(false);
+   //--wxGetApp().SetMissingAliasedFileWarningShouldShow(false);
    BlockHash missingAliasedFileAUFHash;   // (.auf) AliasBlockFiles whose aliased files are missing
    BlockHash missingAliasedFilePathHash;  // full paths of missing aliased files
    this->FindMissingAliasedFiles(missingAliasedFileAUFHash, missingAliasedFilePathHash);
@@ -1608,9 +1633,9 @@ int DirManager::ProjectFSCK(const bool bForceError, const bool bAutoRecoverMode)
          action = 2;
       else
       {
-         wxString msgA =
-_("Project check of \"%s\" folder \
-\ndetected %lld missing external audio file(s) \
+         const QString msg =
+_("Project check of \"%1\" folder \
+\ndetected %2 missing external audio file(s) \
 \n('aliased files'). There is no way for Audacity \
 \nto recover these files automatically. \
 \n\nIf you choose the first or second option below, \
@@ -1620,16 +1645,15 @@ _("Project check of \"%s\" folder \
 \nmay not show silence. \
 \n\nIf you choose the third option, this will save the \
 \nproject in its current state, unless you \"Close \
-\nproject immediately\" on further error alerts.");
-         wxString msg;
-         msg.Printf(msgA, this->projName, (long long) missingAliasedFilePathHash.size());
-         const wxChar *buttons[] =
-            {_("Close project immediately with no changes"),
-               _("Treat missing audio as silence (this session only)"),
-               _("Replace missing audio with silence (permanent immediately)."),
-               NULL};
-         wxLog::FlushActive(); // MultiDialog has "Show Log..." button, so make sure log is current.
-         action = ShowMultiDialog(msg, _("Warning - Missing Aliased File(s)"), buttons);
+\nproject immediately\" on further error alerts.")
+            .arg(this->projName).arg(missingAliasedFilePathHash.size());
+         const QStringList buttons {
+            _("Close project immediately with no changes"),
+            _("Treat missing audio as silence (this session only)"),
+            _("Replace missing audio with silence (permanent immediately).")
+         };
+         //--wxLog::FlushActive(); // MultiDialog has "Show Log..." button, so make sure log is current.
+         action = DialogManager::ShowMultiDialog(msg, _("Warning - Missing Aliased File(s)"), buttons);
       }
 
       if (action == 0)
@@ -1642,7 +1666,7 @@ _("Project check of \"%s\" folder \
          {
             // This type cast is safe. We checked that it's an alias block file earlier.
             BlockFilePtr b = iter->second.lock();
-            wxASSERT(b);
+            Q_ASSERT(b);
             if (b) {
                auto ab = static_cast< AliasBlockFile * > ( &*b );
 
@@ -1652,9 +1676,7 @@ _("Project check of \"%s\" folder \
                   // This is done, eventually, in PCMAliasBlockFile::ReadData()
                   // and ODPCMAliasBlockFile::ReadData, in the stack of b->Recover().
                   // There, if the mAliasedFileName is bad, it zeroes the data.
-                  wxFileNameWrapper dummy;
-                  dummy.Clear();
-                  ab->ChangeAliasedFileName(std::move(dummy));
+                  ab->ChangeAliasedFileName(QString());
 
                   // If recovery fails for one file, silence it,
                   // and don't try to recover other files but
@@ -1675,7 +1697,7 @@ _("Project check of \"%s\" folder \
             ++iter;
          }
          if ((action == 2) && bAutoRecoverMode)
-            wxLogWarning(_("   Project check replaced missing aliased file(s) with silence."));
+            qWarning() << _("   Project check replaced missing aliased file(s) with silence.");
       }
    }
 
@@ -1694,19 +1716,19 @@ _("Project check of \"%s\" folder \
          action = 0;
       else
       {
-         wxString msgA =
-_("Project check of \"%s\" folder \
-\ndetected %lld missing alias (.auf) blockfile(s). \
+         const QString msg =
+_("Project check of \"%1\" folder \
+\ndetected %2 missing alias (.auf) blockfile(s). \
 \nAudacity can fully regenerate these files \
-\nfrom the current audio in the project.");
-         wxString msg;
-         msg.Printf(msgA, this->projName, (long long) missingAUFHash.size());
-         const wxChar *buttons[] = {_("Regenerate alias summary files (safe and recommended)"),
-                                    _("Fill in silence for missing display data (this session only)"),
-                                    _("Close project immediately with no further changes"),
-                                    NULL};
-         wxLog::FlushActive(); // MultiDialog has "Show Log..." button, so make sure log is current.
-         action = ShowMultiDialog(msg, _("Warning - Missing Alias Summary File(s)"), buttons);
+\nfrom the current audio in the project.")
+            .arg(this->projName).arg(missingAUFHash.size());
+         const QStringList buttons  {
+            _("Regenerate alias summary files (safe and recommended)"),
+            _("Fill in silence for missing display data (this session only)"),
+            _("Close project immediately with no further changes")
+         };
+         //--wxLog::FlushActive(); // MultiDialog has "Show Log..." button, so make sure log is current.
+         action = DialogManager::ShowMultiDialog(msg, _("Warning - Missing Alias Summary File(s)"), buttons);
       }
 
       if (action == 2)
@@ -1718,7 +1740,7 @@ _("Project check of \"%s\" folder \
          while (iter != missingAUFHash.end())
          {
             BlockFilePtr b = iter->second.lock();
-            wxASSERT(b);
+            Q_ASSERT(b);
             if (b) {
                if(action==0) {
                   //regenerate from data
@@ -1743,7 +1765,7 @@ _("Project check of \"%s\" folder \
             ++iter;
          }
          if ((action == 0) && bAutoRecoverMode)
-            wxLogWarning(_("   Project check regenerated missing alias summary file(s)."));
+            qWarning() << _("   Project check regenerated missing alias summary file(s).");
       }
    }
 
@@ -1760,9 +1782,9 @@ _("Project check of \"%s\" folder \
          action = 2;
       else
       {
-         wxString msgA =
-_("Project check of \"%s\" folder \
-\ndetected %lld missing audio data (.au) blockfile(s), \
+         const QString msg =
+_("Project check of \"%1\" folder \
+\ndetected %2 missing audio data (.au) blockfile(s), \
 \nprobably due to a bug, system crash, or accidental \
 \ndeletion. There is no way for Audacity to recover \
 \nthese missing files automatically. \
@@ -1770,16 +1792,15 @@ _("Project check of \"%s\" folder \
 \nyou can try to find and restore the missing files \
 \nto their previous location. \
 \n\nNote that for the second option, the waveform \
-\nmay not show silence.");
-         wxString msg;
-         msg.Printf(msgA, this->projName, (long long) missingAUHash.size());
-         const wxChar *buttons[] =
-            {_("Close project immediately with no further changes"),
-               _("Treat missing audio as silence (this session only)"),
-               _("Replace missing audio with silence (permanent immediately)"),
-               NULL};
-         wxLog::FlushActive(); // MultiDialog has "Show Log..." button, so make sure log is current.
-         action = ShowMultiDialog(msg, _("Warning - Missing Audio Data Block File(s)"), buttons);
+\nmay not show silence.")
+            .arg(this->projName).arg(missingAUHash.size());
+         const QStringList buttons = {
+            _("Close project immediately with no further changes"),
+            _("Treat missing audio as silence (this session only)"),
+            _("Replace missing audio with silence (permanent immediately)")
+         };
+         //--wxLog::FlushActive(); // MultiDialog has "Show Log..." button, so make sure log is current.
+         action = DialogManager::ShowMultiDialog(msg, _("Warning - Missing Audio Data Block File(s)"), buttons);
       }
 
       if (action == 0)
@@ -1791,7 +1812,7 @@ _("Project check of \"%s\" folder \
          while (iter != missingAUHash.end())
          {
             BlockFilePtr b = iter->second.lock();
-            wxASSERT(b);
+            Q_ASSERT(b);
             if (b) {
                if (action == 2)
                {
@@ -1816,43 +1837,41 @@ _("Project check of \"%s\" folder \
             ++iter;
          }
          if ((action == 2) && bAutoRecoverMode)
-            wxLogWarning(_("   Project check replaced missing audio data block file(s) with silence."));
+            qWarning() << _("   Project check replaced missing audio data block file(s) with silence.");
       }
    }
 
    //
    // ORPHAN BLOCKFILES (.au and .auf files that are not in the project.)
    //
-   wxArrayString orphanFilePathArray;     // orphan .au and .auf files
+   QStringList orphanFilePathArray;     // orphan .au and .auf files
    this->FindOrphanBlockFiles(filePathArray, orphanFilePathArray);
 
-   if ((nResult != FSCKstatus_CLOSE_REQ) && !orphanFilePathArray.IsEmpty())
+   if ((nResult != FSCKstatus_CLOSE_REQ) && !orphanFilePathArray.isEmpty())
    {
       // In auto-recover mode, leave orphan blockfiles alone.
       // They will be deleted when project is saved the first time.
       if (bAutoRecoverMode)
       {
-         wxLogWarning(_("   Project check ignored orphan block file(s). They will be deleted when project is saved."));
+         qWarning() << _("   Project check ignored orphan block file(s). They will be deleted when project is saved.");
          action = 1;
       }
       else
       {
-         wxString msgA =
-_("Project check of \"%s\" folder \
-\nfound %d orphan block file(s). These files are \
+         const QString msg =
+_("Project check of \"%1\" folder \
+\nfound %2 orphan block file(s). These files are \
 \nunused by this project, but might belong to \
 other projects. \
-\nThey are doing no harm and are small.");
-         wxString msg;
-         msg.Printf(msgA, this->projName, (int)orphanFilePathArray.GetCount());
-
-         const wxChar *buttons[] =
-            {_("Continue without deleting; ignore the extra files this session"),
+\nThey are doing no harm and are small.")
+            .arg(this->projName).arg(orphanFilePathArray.count());
+         const QStringList buttons {
+            _("Continue without deleting; ignore the extra files this session"),
             _("Close project immediately with no further changes"),
-            _("Delete orphan files (permanent immediately)"),
-            NULL};
-         wxLog::FlushActive(); // MultiDialog has "Show Log..." button, so make sure log is current.
-         action = ShowMultiDialog(msg, _("Warning - Orphan Block File(s)"), buttons);
+            _("Delete orphan files (permanent immediately)")
+         };
+         //--wxLog::FlushActive(); // MultiDialog has "Show Log..." button, so make sure log is current.
+         action = DialogManager::ShowMultiDialog(msg, _("Warning - Orphan Block File(s)"), buttons);
       }
 
       if (action == 1)
@@ -1865,12 +1884,13 @@ other projects. \
          // Plus they affect none of the valid tracks, so incorrect to mark them changed,
          // and no need for refresh.
          //    nResult |= FSCKstatus_CHANGED;
-         for (size_t i = 0; i < orphanFilePathArray.GetCount(); i++)
-            wxRemoveFile(orphanFilePathArray[i]);
+         for (const auto& path : orphanFilePathArray)
+            QFile::remove(path);
       }
    }
 
-   if ((nResult != FSCKstatus_CLOSE_REQ) && !ODManager::HasLoadedODFlag())
+   // PORTME ODManager
+   if ((nResult != FSCKstatus_CLOSE_REQ))// && !ODManager::HasLoadedODFlag())
    {
       // Remove any empty directories.
       ProgressDialog pProgress
@@ -1886,20 +1906,20 @@ other projects. \
          !missingAliasedFileAUFHash.empty() ||
          !missingAUFHash.empty() ||
          !missingAUHash.empty() ||
-         !orphanFilePathArray.IsEmpty())
+         !orphanFilePathArray.isEmpty())
    {
-      wxLogWarning(_("Project check found file inconsistencies inspecting the loaded project data."));
-      wxLog::FlushActive(); // Flush is modal and will clear the log (both desired).
+      qWarning() << _("Project check found file inconsistencies inspecting the loaded project data.");
+      //--wxLog::FlushActive(); // Flush is modal and will clear the log (both desired).
 
       // In auto-recover mode, we didn't do any ShowMultiDialog calls above, so put up an alert.
       if (bAutoRecoverMode)
-         ::AudacityMessageBox(
-            _("Project check found file inconsistencies during automatic recovery.\n\nSelect 'Show Log...' in the Help menu to see details."),
-            _("Warning: Problems in Automatic Recovery"),
-            wxOK  | wxICON_EXCLAMATION);
+         qCritical()
+            << _("Warning: Problems in Automatic Recovery")
+            << "\n"
+            << _("Project check found file inconsistencies during automatic recovery.\n\nSelect 'Show Log...' in the Help menu to see details.");
    }
 
-   wxGetApp().SetMissingAliasedFileWarningShouldShow(true);
+   //--wxGetApp().SetMissingAliasedFileWarningShouldShow(true);
    return nResult;
 }
 
@@ -1910,17 +1930,17 @@ void DirManager::FindMissingAliasedFiles(
    BlockHash::iterator iter = mBlockFileHash.begin();
    while (iter != mBlockFileHash.end())
    {
-      wxString key = iter->first;   // file name and extension
+      const QString &key = iter->first;   // file name and extension
       BlockFilePtr b = iter->second.lock();
       if (b) {
          if (b->IsAlias())
          {
-            const wxFileName &aliasedFileName =
-            static_cast< AliasBlockFile* > ( &*b )->GetAliasedFileName();
-            wxString aliasedFileFullPath = aliasedFileName.GetFullPath();
+            const QString aliasedFileFullPath =
+               static_cast< AliasBlockFile* > ( &*b )->GetAliasedFileName();
+            //--const wxString aliasedFileFullPath = aliasedFileName.GetFullPath();
             // wxEmptyString can happen if user already chose to "replace... with silence".
-            if ((aliasedFileFullPath != wxEmptyString) &&
-                !aliasedFileName.FileExists())
+            if ( !aliasedFileFullPath.isEmpty() &&
+                 !QFileInfo(aliasedFileFullPath).exists() )
             {
                missingAliasedFileAUFHash[key] = b;
                if (missingAliasedFilePathHash.find(aliasedFileFullPath) ==
@@ -1937,7 +1957,7 @@ void DirManager::FindMissingAliasedFiles(
    iter = missingAliasedFilePathHash.begin();
    while (iter != missingAliasedFilePathHash.end())
    {
-      wxLogWarning(_("Missing aliased audio file: '%s'"), iter->first);
+      qWarning() << _("Missing aliased audio file: '%1'").arg(iter->first);
       ++iter;
    }
 }
@@ -1948,21 +1968,21 @@ void DirManager::FindMissingAUFs(
    BlockHash::iterator iter = mBlockFileHash.begin();
    while (iter != mBlockFileHash.end())
    {
-      const wxString &key = iter->first;
+      const QString &key = iter->first;
       BlockFilePtr b = iter->second.lock();
       if (b) {
          if (b->IsAlias() && b->IsSummaryAvailable())
          {
             /* don't look in hash; that might find files the user moved
              that the Blockfile abstraction can't find itself */
-            wxFileNameWrapper fileName{ MakeBlockFilePath(key) };
-            fileName.SetName(key);
-            fileName.SetExt(wxT("auf"));
-            if (!fileName.FileExists())
+            QString fileName{ MakeBlockFilePath(key) };
+            fileName += PLATFORM_PATH_SEPARATOR;
+            fileName += key;
+            fileName += wxT(".auf");
+            if (!QFileInfo(fileName).exists())
             {
                missingAUFHash[key] = b;
-               wxLogWarning(_("Missing alias (.auf) block file: '%s'"),
-                            fileName.GetFullPath());
+               qWarning() << _("Missing alias (.auf) block file: '%1'").arg(fileName);
             }
          }
       }
@@ -1976,20 +1996,21 @@ void DirManager::FindMissingAUs(
    BlockHash::iterator iter = mBlockFileHash.begin();
    while (iter != mBlockFileHash.end())
    {
-      const wxString &key = iter->first;
+      const QString &key = iter->first;
       BlockFilePtr b = iter->second.lock();
       if (b) {
          if (!b->IsAlias())
          {
-            wxFileNameWrapper fileName{ MakeBlockFilePath(key) };
-            fileName.SetName(key);
-            fileName.SetExt(wxT("au"));
-            const auto path = fileName.GetFullPath();
-            if (!fileName.FileExists() ||
-                wxFile{ path }.Length() == 0)
+            QString fileName{ MakeBlockFilePath(key) };
+            fileName += PLATFORM_PATH_SEPARATOR;
+            fileName += key;
+            fileName += wxT(".au");
+            QFile file(fileName);
+            if (!file.exists() ||
+                file.size() == 0)
             {
                missingAUHash[key] = b;
-               wxLogWarning(_("Missing data block file: '%s'"), path);
+               qWarning() << _("Missing data block file: '%1'").arg(fileName);
             }
          }
       }
@@ -1999,9 +2020,14 @@ void DirManager::FindMissingAUs(
 
 // Find .au and .auf files that are not in the project.
 void DirManager::FindOrphanBlockFiles(
-      const wxArrayString& filePathArray,       // input: all files in project directory
-      wxArrayString& orphanFilePathArray)       // output: orphan files
+      const QStringList& filePathArray,       // input: all files in project directory
+      QStringList& orphanFilePathArray)       // output: orphan files
 {
+   (void)filePathArray;
+   (void)orphanFilePathArray;
+
+   /**-- PORTME: Requires clipboard model...
+
    DirManager *clipboardDM = NULL;
 
    for (size_t i = 0; i < filePathArray.GetCount(); i++)
@@ -2033,35 +2059,35 @@ void DirManager::FindOrphanBlockFiles(
    }
    for (size_t i = 0; i < orphanFilePathArray.GetCount(); i++)
       wxLogWarning(_("Orphan block file: '%s'"), orphanFilePathArray[i]);
+   --**/
 }
-
 
 void DirManager::RemoveOrphanBlockfiles()
 {
-   wxArrayString filePathArray; // *all* files in the project directory/subdirectories
-   wxString dirPath = (projFull != wxT("") ? projFull : mytemp);
+   QStringList filePathArray; // *all* files in the project directory/subdirectories
+   QString dirPath = projFull.isEmpty() ? mytemp : projFull;
    RecursivelyEnumerateWithProgress(
       dirPath,
-      filePathArray,          // output: all files in project directory tree
-      wxEmptyString,          // All dirs
-      wxEmptyString,          // All files
+      filePathArray,         // output: all files in project directory tree
+      wxT("*"),              // All dirs
+      wxT("*"),              // All files
       true, false,
       mBlockFileHash.size(),  // rough guess of how many BlockFiles will be found/processed, for progress
       _("Inspecting project file data"));
 
-   wxArrayString orphanFilePathArray;
+   QStringList orphanFilePathArray;
    this->FindOrphanBlockFiles(
             filePathArray,          // input: all files in project directory tree
             orphanFilePathArray);   // output: orphan files
 
    // Remove all orphan blockfiles.
-   for (size_t i = 0; i < orphanFilePathArray.GetCount(); i++)
-      wxRemoveFile(orphanFilePathArray[i]);
+   for (const auto& path : orphanFilePathArray)
+      QFile::remove(path);
 }
 
+#ifdef DEPRECATED_AUDIO_CACHE
 void DirManager::FillBlockfilesCache()
 {
-#ifdef DEPRECATED_AUDIO_CACHE
    // See http://bugzilla.audacityteam.org/show_bug.cgi?id=545.
    bool cacheBlockFiles = false;
    gPrefs->Read(wxT("/Directories/CacheBlockFiles"), &cacheBlockFiles);
@@ -2111,7 +2137,6 @@ void DirManager::FillBlockfilesCache()
       }
       ++iter;
    }
-#endif // DEPRECATED_AUDIO_CACHE
 }
 
 void DirManager::WriteCacheToDisk()
@@ -2152,4 +2177,4 @@ void DirManager::WriteCacheToDisk()
       ++iter;
    }
 }
-
+#endif // DEPRECATED_AUDIO_CACHE

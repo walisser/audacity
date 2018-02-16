@@ -304,7 +304,7 @@ public:
    AudioTrack(const Track &orig) : Track{ orig } {}
 
    // Serialize, not with tags of its own, but as attributes within a tag.
-   void WriteXMLAttributes(XMLWriter &xmlFile) const {Q_UNUSED(xmlFile)}
+   void WriteXMLAttributes(XMLWriter &xmlFile) const {(void)xmlFile;}
 
    // Return true iff the attribute is recognized.
    bool HandleXMLAttribute(const QString & /*attr*/, const QString & /*value*/)

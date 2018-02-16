@@ -37,7 +37,7 @@ bool SilentBlockFile::ReadSummary(ArrayOf<char> &data)
 size_t SilentBlockFile::ReadData(samplePtr data, sampleFormat format,
                               size_t start, size_t len, bool) const
 {
-   Q_UNUSED(start)
+   (void)start;
 
    ClearSamples(data, format, 0, len);
 
@@ -60,7 +60,7 @@ void SilentBlockFile::SaveXML(XMLWriter &xmlFile)
 /// static
 BlockFilePtr SilentBlockFile::BuildFromXML(DirManager &dm, const QStringMap &attrs)
 {
-   Q_UNUSED(dm);
+   (void)dm;
 
    long nValue;
    size_t len = 0;
@@ -98,7 +98,7 @@ BlockFilePtr SilentBlockFile::BuildFromXML(DirManager &dm, const QStringMap &att
 /// Create a copy of this BlockFile
 BlockFilePtr SilentBlockFile::Copy(const QString &newFileName)
 {
-   Q_UNUSED(newFileName)
+   (void)newFileName;
 
    return make_blockfile<SilentBlockFile>(mLen);
 }

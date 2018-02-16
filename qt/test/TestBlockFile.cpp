@@ -13,9 +13,9 @@
 TestBlockFile* _implementation = nullptr;
 
 // stubs
+#ifndef TESTING_DIRMANAGER
 DirManager::DirManager() {}
 DirManager::~DirManager() {}
-QString DirManager::GetProjectDataDir() { return "."; }
 
 bool DirManager::HandleXMLTag(const QString &tag, const QStringMap &attrs)
 {
@@ -44,11 +44,12 @@ bool DirManager::HandleXMLTag(const QString &tag, const QStringMap &attrs)
 
 bool DirManager::AssignFile(QString &fileName, const QString &value, bool check)
 {
-   Q_UNUSED(check);
+   (void)check;
    fileName = value;
    return true;
 }
 // end stubs
+#endif
 
 // zeroed test data (for SilentBlockFile)
 void TestBlockFile::makeTestData(size_t numSamples, TestData& t) const
@@ -73,7 +74,8 @@ void TestBlockFile::writeTestFile(const TestData& t) const
       format |= SF_FORMAT_FLAC;
    else
    {
-      QWARN("Not writing test file");
+      if (!t.fileName.isEmpty())
+         QWARN("Not writing test file");
       return;
    }
 
@@ -110,12 +112,11 @@ void TestBlockFile::writeTestFile(const TestData& t) const
    QVERIFY( QFileInfo(t.fileName).exists() );
 }
 
-// sequential samples from -INT16_MAX to INT16_MAX
-// also writes test buffer to a file
+// sequential samples from -/+ INT16_MAX
 void TestBlockFile::makeTestData(const QString& fileName_, TestData& t) const
 {
    t.fileName = fileName_;
-   t.numSamples = INT16_MAX*2 + 1;
+   t.numSamples = INT16_MAX*2 + 1; // +1 to include 0 sample
    t.fmt = int16Sample;
    t.minSample = -INT16_MAX/float(1<<15),
    t.maxSample=INT16_MAX/float(1<<15),
@@ -132,7 +133,7 @@ void TestBlockFile::makeTestData(const QString& fileName_, TestData& t) const
    writeTestFile(t);
 }
 
-// setup a test buffer so its min/max is -/+ INT24_MAX
+// sequential sampels from -/+ INT24_MAX
 void TestBlockFile::makeTestData24Bit(const QString& fileName_, TestData& t) const
 {
    const int INT24_MAX = (1<<23)-1;
@@ -158,7 +159,7 @@ void TestBlockFile::makeTestData24Bit(const QString& fileName_, TestData& t) con
    writeTestFile(t);
 }
 
-// setup a test buffer so its min/max is -/+ 1.0f
+// test buffer with min/max of -/+ 1.0f
 void TestBlockFile::makeTestDataFloat(const QString& filename_, TestData& t) const
 {
    t.fileName = filename_;

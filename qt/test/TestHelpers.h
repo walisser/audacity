@@ -22,7 +22,7 @@
 #endif
 
 // switch this on to help debugging
-#define DEBUGGER_NEEDS_HELP 1
+//#define DEBUGGER_NEEDS_HELP 1
 #ifdef DEBUGGER_NEEDS_HELP
 #warning Some tests are disabled to aid debugging!
 #endif
@@ -121,4 +121,3 @@ static void setOne(const SampleBuffer& s1, sampleFormat fmt, int start, size_t l
 {
     setByte(s1, 0xff, fmt, start, len);
 }
-

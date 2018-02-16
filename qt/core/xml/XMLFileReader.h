@@ -7,8 +7,8 @@
   Dominic Mazzoni
 
 **********************************************************************/
-
-#include "../Audacity.h"
+#pragma once
+//#include "../Audacity.h"
 
 #include <vector>
 //#include "expat.h"
