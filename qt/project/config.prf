@@ -289,11 +289,11 @@ defineTest(endProject) {
    #write_file($$CONFIG_LOG,CONFIG_H,append)
    #write_file($$CONFIG_LOG,CONFIG,append)
 
-   # FIXME: add to clean files
    OUTFILE=$$DESTDIR/qmake_config.h
    write_file($$OUTFILE, CONFIG_H): {
 
       message(wrote $$OUTFILE)
+      QMAKE_CLEAN += $$OUTFILE
    }
 
    # diagnostic, show all qmake variables

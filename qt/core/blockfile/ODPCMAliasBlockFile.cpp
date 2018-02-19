@@ -16,25 +16,7 @@ The summary is eventually computed and written to a file in a background thread.
 
 *//*******************************************************************/
 
-//#include "../Audacity.h"
 #include "ODPCMAliasBlockFile.h"
-
-//#include <float.h>
-
-//#include <wx/file.h>
-//#include <wx/utils.h>
-//#include <wx/wxchar.h>
-//#include <wx/log.h>
-//#include <wx/thread.h>
-//#include <sndfile.h>
-
-//#include "../AudacityApp.h"
-//#include "PCMAliasBlockFile.h"
-//#include "../FileFormats.h"
-//#include "../Internat.h"
-
-//#include "../ondemand/ODManager.h"
-//#include "../AudioIO.h"
 
 #include "NotYetAvailableException.h"
 

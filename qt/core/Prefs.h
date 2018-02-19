@@ -29,11 +29,6 @@
 #ifndef __AUDACITY_PREFS__
 #define __AUDACITY_PREFS__
 
-#include "Audacity.h"
-
-//--#include <wx/config.h>
-//--#include <wx/fileconf.h>
-
 void InitPreferences();
 void FinishPreferences();
 

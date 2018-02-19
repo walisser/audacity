@@ -354,7 +354,7 @@ static void RecursivelyRemove(const QStringList& filePathArray, int count, int b
             continue;
          }
 
-         if (bDirsMustBeEmpty && !dir.isEmpty())
+         if (bDirsMustBeEmpty && !qDirIsEmpty(dir))
          {
             //qDebug() << "Dir is not empty: " << file;
             continue;
@@ -364,12 +364,17 @@ static void RecursivelyRemove(const QStringList& filePathArray, int count, int b
          // the wx version uses wxRmdir, which behaves the same!
          //qDebug() << "Removing dir:  " << file;
          QString dirName = dir.dirName();
-         if (!dir.cdUp() || !dir.rmdir(dirName))
+         if (!dir.cdUp())
          {
-            qInfo() << "Failed to remove: " << file;
+            qErrnoWarning(wxT("DirManager: Failed to cdup: %s"), qPrintable(file));
+            continue;
+         }
+
+         if (!dir.rmdir(dirName))
+         {
             dir.cd(dirName);
-            for (const auto& entry : dir.entryList(QStringList{wxT("*")}, QDir::NoDotAndDotDot))
-               qInfo() << dir.relativeFilePath(entry);
+            qErrnoWarning(wxT("DirManager: Failed to remove: %s"), qPrintable(file));
+            qWarning() << wxT("Still contains: ") << dir.entryList();
          }
       }
    }

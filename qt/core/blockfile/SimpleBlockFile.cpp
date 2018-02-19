@@ -57,27 +57,17 @@ to get its definition, rather than rolling our own.
 
 *//*******************************************************************/
 
-//#include "core/Audacity.h"
 #include "SimpleBlockFile.h"
-
-//#include <wx/wx.h>
-//#include <wx/filefn.h>
-//#include <wx/ffile.h>
-//#include <wx/utils.h>
-//#include <wx/log.h>
 
 #include "../FileException.h"
 //#include "..//Prefs.h"
 
-#include "core/FileFormats.h"
-
-#include "sndfile.h"
-//#include "../Internat.h"
-//#include "..//MemoryX.h"
+#include "../FileFormats.h"
 
 #include "../xml/XMLWriter.h"
 #include "../xml/XMLTagHandler.h"
 #include "../DirManager.h"
+
 
 /**--
 static uint32_t SwapUintEndianess(uint32_t in)

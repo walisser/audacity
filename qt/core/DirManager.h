@@ -12,16 +12,9 @@
 #define _DIRMANAGER_
 
 #include "MemoryX.h"
-//--#include <wx/list.h>
-//--#include <wx/string.h>
-//--#include <wx/filename.h>
-//--#include <wx/hashmap.h>
-//--#include <wx/utils.h>
-
-//--#include "audacity/Types.h"
 #include "SampleFormat.h"
 #include "xml/XMLTagHandler.h"
-//--#include "wxFileNameWrapper.h"
+
 #ifndef __AUDACITY_OLD_STD__
 #include <unordered_map>
 #endif

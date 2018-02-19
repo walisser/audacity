@@ -10,7 +10,6 @@
 #define __AUDACITY_FILE_EXCEPTION__
 
 #include "AudacityException.h"
-//#include <wx/filename.h>
 
 class FileException /* not final */ : public MessageBoxException
 {

@@ -28,19 +28,10 @@ are implemented here to behave when the data is not available yet.
 Some of these methods have been overridden only because they used the unsafe wxLog calls in the base class.
 *//*******************************************************************/
 
-
-
-
-
-
 #ifndef __AUDACITY_ODPCMALIASBLOCKFILE__
 #define __AUDACITY_ODPCMALIASBLOCKFILE__
 
 #include "PCMAliasBlockFile.h"
-//#include "core/BlockFile.h"
-//#include "../ondemand/ODTaskThread.h"
-//#include "../DirManager.h"
-//#include <wx/thread.h>
 
 /// An AliasBlockFile that references uncompressed data in an existing file
 class ODPCMAliasBlockFile final : public PCMAliasBlockFile

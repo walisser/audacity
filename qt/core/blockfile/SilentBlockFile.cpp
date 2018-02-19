@@ -8,12 +8,10 @@
 
 **********************************************************************/
 
-// #include "../Audacity.h"
 #include "SilentBlockFile.h"
-// #include "../FileFormats.h"
 
-#include "core/xml/XMLWriter.h"
-#include "core/xml/XMLTagHandler.h"
+#include "../xml/XMLWriter.h"
+#include "../xml/XMLTagHandler.h"
 
 SilentBlockFile::SilentBlockFile(size_t sampleLen):
    BlockFile{ QString{}, sampleLen }

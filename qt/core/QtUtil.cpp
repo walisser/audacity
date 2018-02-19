@@ -1,6 +1,15 @@
 
 #include "QtUtil.h"
 
+bool qDirIsEmpty(const QDir& dir)
+{
+#if QT_VERSION >= QT_VERSION_CHECK(5,9,0)
+   return dir.isEmpty();
+#else
+   QDirIterator(dir.absolutePath(), QStringList{wxT("*")}, QDir::AllEntries|QDir::NoDotAndDotDot).hasNext();
+#endif
+}
+
 bool qCopyFile(const QString& srcPath, const QString& dstPath)
 {
    // copied from QFile:copy() with some modifications, namely to remove any
@@ -68,6 +77,9 @@ bool qCopyFile(const QString& srcPath, const QString& dstPath)
             error = true;
          }
 
+         // NOTE: Qt 5.10.0 and possibly earlier have a bug
+         // with file renaming on Android: https://bugreports.qt.io/browse/QTBUG-64103
+         // fixed in 5.10.1
          if (!error && !dst.rename(dstPath)) {
             qErrnoWarning(wxT("qCopyFile: Cannot rename destination file"));
             error = true;

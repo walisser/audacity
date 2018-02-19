@@ -11,12 +11,6 @@
 #ifndef __AUDACITY_FILE_FORMATS__
 #define __AUDACITY_FILE_FORMATS__
 
-//#include <wx/list.h>
-//#include <wx/arrstr.h>
-//#include <wx/string.h>
-
-#include "Audacity.h"
-
 #include "sndfile.h"
 
 // sndfile also checks for this, but at runtime

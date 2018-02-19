@@ -49,7 +49,7 @@ void resetDirManager()
    QDir tmpDir(_tmpPath);
    QString dirName = tmpDir.dirName();
    QVERIFY( tmpDir.removeRecursively() );
-   QVERIFY( tmpDir.isEmpty() );
+   QVERIFY( qDirIsEmpty(tmpDir) );
    QVERIFY( tmpDir.cdUp() && tmpDir.mkdir(dirName) && tmpDir.cd(dirName) );
 
    _d = std::make_unique<DirManager>();
@@ -304,14 +304,12 @@ void testHandleXMLTag()
    // refcount is bumped
    //
    _seqBlocks.clear();
-   QVector<BlockFilePtr> copies;
    for (BlockFilePtr &b : _blockFiles)
    {
       const QString oldName = b->GetFileName();
       bool wasLocked = b->IsLocked();
 
       // The assignment releases the old block file
-      // If the blockfile was locked, creates an orphaned file we should see in ProjectFSCK()
       b = _d->CopyBlockFile(b);
 
       // Locked, should have made a copy
@@ -382,7 +380,6 @@ void testsProjectFSCK_AutoRecovery()
    QVERIFY(status == 0);
 
    // 1) remove the data file (.au) and see if FSCK replaces with silence
-   QVERIFY(b);
    QVERIFY(QFile(b->GetFileName()).remove());
 
    status =_d->ProjectFSCK(false, true);
@@ -476,7 +473,6 @@ void checkProjectFSCK_Dialogs_Common(const TestData &t, const BlockFile &b)
    QVERIFY(isZero(dst, t.fmt, 0, t.numSamples));
 }
 
-private Q_SLOTS:
 void testsProjectFSCK_Dialogs_MissingBlockFile()
 {
    TestData t;
@@ -553,12 +549,6 @@ void testsProjectFSCK_Dialogs_MissingSummaryFile()
    QVERIFY(status == FSCKstatus_CLOSE_REQ);
    QVERIFY(!QFile::exists(b->GetFileName()));
 
-   // 1.2) don't force dialog at start, click no changes button
-   DialogManager::PushButtonClick(2);
-   status =_d->ProjectFSCK(false, false);
-   QVERIFY(status == FSCKstatus_CLOSE_REQ);
-   QVERIFY(!QFile::exists(b->GetFileName()));
-
    // 1.3) silence the error logging from blockfiles, don't modify project
    // TESTME: is the error logging actually silenced? ReadData will still throw...
    DialogManager::PushButtonClick(1);
@@ -618,7 +608,7 @@ void testDestruct()
    QDir tmpDir(_tmpPath);
    QString dirName = tmpDir.dirName();
    QVERIFY( tmpDir.removeRecursively() );
-   QVERIFY( tmpDir.isEmpty() );
+   QVERIFY( qDirIsEmpty(tmpDir) );
    QVERIFY( tmpDir.cdUp() && tmpDir.mkdir(dirName) && tmpDir.cd(dirName) );
 
    TestData t;
@@ -633,11 +623,13 @@ void testDestruct()
    // tmp dir should not be touched here
    qDebug() << tmpDir.entryList();
    d1.reset();
-   QVERIFY( !tmpDir.isEmpty() );
+   qDebug() << tmpDir.entryList();
+
+   QVERIFY( !qDirIsEmpty(tmpDir) );
 
    qDebug() << tmpDir.entryList();
    d2.reset();
-   QVERIFY( tmpDir.isEmpty() );
+   QVERIFY( qDirIsEmpty(tmpDir) );
 }
 
 };

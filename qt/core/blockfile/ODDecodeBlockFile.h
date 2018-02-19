@@ -19,21 +19,10 @@ Load On-Demand implementation of the SimpleBlockFile for audio files that need t
 Also, see ODPCMAliasBlockFile for a similar file.
 *//*******************************************************************/
 
-
-
-
-
-
 #ifndef __AUDACITY_ODDecodeBlockFile__
 #define __AUDACITY_ODDecodeBlockFile__
 
 #include "SimpleBlockFile.h"
-//#include "../BlockFile.h"
-//#include "../ondemand/ODTaskThread.h"
-//#include "../DirManager.h"
-//#include "../ondemand/ODDecodeTask.h"
-//#include <wx/atomic.h>
-//#include <wx/thread.h>
 
 class ODFileDecoder;
 

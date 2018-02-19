@@ -39,23 +39,11 @@ out.
 
 *//*******************************************************************/
 
-#include "Audacity.h"
 #include "BlockFile.h"
-
-#include <float.h>
-#include <cmath>
-
-//#include <wx/utils.h>
-//#include <wx/filefn.h>
-//#include <wx/ffile.h>
-//#include <wx/log.h>
-
-//#include "Internat.h"
-//#include "MemoryX.h"
-#include "sndfile.h"
 #include "FileFormats.h"
-//#include "AudacityApp.h"
 #include "FileException.h"
+
+#include <float.h> // FLT_MAX
 
 // msmeyer: Define this to add debug output via printf()
 //#define DEBUG_BLOCKFILE

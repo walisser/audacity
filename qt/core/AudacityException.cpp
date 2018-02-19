@@ -19,11 +19,7 @@ got to show.
 
 *//********************************************************************/
 
-//--#include "Audacity.h"
 #include "AudacityException.h"
-
-//--#include <wx/atomic.h>
-//--#include "widgets/ErrorDialog.h"
 
 AudacityException::~AudacityException()
 {

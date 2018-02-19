@@ -8,6 +8,7 @@ export ANDROID_SDK_ROOT=/opt/android-sdk
 export ANDROID_NDK_ROOT=/opt/android-ndk/r16b
 
 ADB=${ANDROID_SDK_ROOT}/platform-tools/adb
+QT_ROOT=/opt/qt/Qt-5.10.1/5.10.1
 
 if [ "$1" == "-clean" ]; then
    rm -rf android*.json
@@ -62,7 +63,7 @@ for arg in $@; do
       if [ "$1" == "android_armv7" ]; then
          DEVICE="092a33f3"
       fi
-      QT_SDK_ROOT=/opt/qt/Qt-5.10.0/5.10.0/${TARGET}
+      QT_SDK_ROOT="${QT_ROOT}/${TARGET}"
       QMAKE=${QT_SDK_ROOT}/bin/qmake
       ANDROID_DEPLOY_QT=${QT_SDK_ROOT}/bin/androiddeployqt
       PCH_PREFIX=lib

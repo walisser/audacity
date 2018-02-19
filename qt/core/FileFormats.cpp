@@ -14,13 +14,8 @@ information.
 
 *//*******************************************************************/
 
-
-//#include "Audacity.h"
 #include "MemoryX.h"
-//--#include <wx/arrstr.h>
-//--#include <wx/intl.h>
 #include "sndfile.h"
-//--#include "widgets/ErrorDialog.h"
 
 #ifndef SNDFILE_1
 #error Requires libsndfile 1.0 or higher

@@ -12,21 +12,7 @@
 #ifndef __AUDACITY_BLOCKFILE__
 #define __AUDACITY_BLOCKFILE__
 
-//#include "MemoryX.h"
 #include "SampleFormat.h"
-
-//#include <wx/string.h>
-//#include <wx/ffile.h>
-//#include <wx/filename.h>
-
-//#include "xml/XMLTagHandler.h"
-//#include "xml/XMLWriter.h"
-
-
-//#include "wxFileNameWrapper.h"
-
-//#include "ondemand/ODTaskThread.h"
-
 
 class SummaryInfo {
  public:

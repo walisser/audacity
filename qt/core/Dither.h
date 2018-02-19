@@ -12,7 +12,6 @@
 
 #include "SampleFormat.h"
 
-
 class Dither
 {
 public:

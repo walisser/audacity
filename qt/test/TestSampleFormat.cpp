@@ -57,7 +57,7 @@ void testGrowableSampleBuffer()
    samples.Resize(count*2, int16Sample);
    QVERIFY( MALLOC_SIZE(samples.ptr()) >= SAMPLE_SIZE(int16Sample)*count*2 );
 
-   // FIXME: SampleFormat doesn't resize buffers if format change requires it
+   // FIXME: GrowableSampleBuffer doesn't resize buffers if format change requires it
    samples.Resize(count*2, floatSample);
    QEXPECT_FAIL("", "FIXME: Buffer Resizing", Continue);
    QVERIFY( MALLOC_SIZE(samples.ptr()) >= SAMPLE_SIZE(floatSample)*count*2 );

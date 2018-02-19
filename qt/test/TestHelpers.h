@@ -22,13 +22,12 @@
 #endif
 
 // switch this on to help debugging
+// disables FileSizeLimiter as it causes debugger stops on signal
 //#define DEBUGGER_NEEDS_HELP 1
 #ifdef DEBUGGER_NEEDS_HELP
 #warning Some tests are disabled to aid debugging!
 #endif
 
-// FIXME: disable FileSizeLimiter when debugger is attached
-// because the signals are intercepted by debugger
 #if defined(Q_OS_UNIX) && !defined(DEBUGGER_NEEDS_HELP)
 #include <sys/resource.h>
 #include <signal.h>

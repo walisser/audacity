@@ -4,8 +4,6 @@
 // C++ standard header <memory> with a few extensions
 #include <memory>
 
-#include "Audacity.h"
-
 #ifndef safenew
 #define safenew new
 #endif

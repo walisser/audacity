@@ -8,27 +8,11 @@
 
 **********************************************************************/
 
-//#include "../Audacity.h"
 #include "PCMAliasBlockFile.h"
 
-//#include <wx/file.h>
-//#include <wx/utils.h>
-//#include <wx/wxchar.h>
-//#include <wx/log.h>
-
-//#include <sndfile.h>
-
-//#include "../AudacityApp.h"
-//#include "../FileFormats.h"
-//#include "../Internat.h"
-//#include "../MemoryX.h"
-
-//#include "../ondemand/ODManager.h"
-//#include "../AudioIO.h"
 #include "../xml/XMLWriter.h"
 #include "../xml/XMLTagHandler.h"
 #include "../DirManager.h"
-//extern AudioIO *gAudioIO;
 
 PCMAliasBlockFile::PCMAliasBlockFile(
       const QString &fileName,
